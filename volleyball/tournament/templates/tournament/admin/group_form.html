@@ -1,0 +1,66 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{% if group %}Редактирование группы{% else %}Создание группы{% endif %}{% endblock %}
+{% block header %}{% if group %}Редактирование группы{% else %}Создание группы{% endif %}{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_groups_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
+            ← Назад к списку групп
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>{% if group %}Редактирование группы турниров{% else %}Создание новой группы{% endif %}</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 600px; margin-top: 30px;">
+    <form method="post" class="admin-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="name">Название группы *</label>
+            <input type="text" id="name" name="name" value="{% if group %}{{ group.name }}{% endif %}" 
+                   required maxlength="200" placeholder="Например: Сезон 2024">
+        </div>
+        
+        <div class="form-group">
+            <label for="order">Порядок отображения</label>
+            <input type="number" id="order" name="order" value="{% if group %}{{ group.order }}{% else %}0{% endif %}" 
+                   min="0" placeholder="0">
+            <small style="display: block; margin-top: 5px; color: #666;">
+                Группы с меньшим номером отображаются выше
+            </small>
+        </div>
+        
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button type="submit" class="btn-primary">
+                {% if group %}💾 Сохранить изменения{% else %}➕ Создать группу{% endif %}
+            </button>
+            <a href="{% url 'tournament:admin_groups_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .admin-form { background: #f8f9fa; padding: 30px; border-radius: 12px; }
+    .form-group { margin-bottom: 25px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 15px; }
+    .form-group input { width: 100%; padding: 12px 15px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; }
+    .form-group input:focus { outline: none; border-color: #667eea; }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 500; border: none; cursor: pointer; font-size: 15px; transition: transform 0.2s; }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-secondary { background: #6c757d; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; display: inline-block; font-size: 15px; }
+    .alert { padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; font-weight: 500; }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+</style>
+{% endblock %}

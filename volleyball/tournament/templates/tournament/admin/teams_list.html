@@ -1,0 +1,222 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Управление командами{% endblock %}
+{% block header %}Управление командами{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_dashboard' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Панель администратора
+        </a>
+        
+        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
+            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link current">👥 Команды</a>
+            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link">📍 Места проведения</a>
+            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link">📁 Группы турниров</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0;">Команды</h2>
+    <a href="{% url 'tournament:admin_team_create' %}" class="btn-primary">+ Добавить команду</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Фильтры -->
+<form method="get" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 200px auto; gap: 15px; align-items: end;">
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Поиск</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Название команды..." 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Пол</label>
+            <select name="gender" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                <option value="">Все</option>
+                <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Мужские</option>
+                <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Женские</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn-primary">Применить</button>
+            {% if search or gender_filter %}
+                <a href="{% url 'tournament:admin_teams_list' %}" class="btn-secondary" style="margin-left: 10px;">Сбросить</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<!-- Таблица команд -->
+<div class="table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th style="width: 60px;">#</th>
+                <th>Название</th>
+                <th style="width: 150px;">Пол</th>
+                <th style="width: 120px;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams %}
+            <tr class="clickable-row" data-href="{% url 'tournament:admin_team_edit' team.id %}">
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td><strong>{{ team.name }}</strong></td>
+                <td>
+                    <span class="badge badge-{{ team.gender|lower }}">
+                        {{ team.get_gender_display }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <a href="{% url 'tournament:admin_team_edit' team.id %}" class="btn-sm btn-edit" onclick="event.stopPropagation()">✏️</a>
+                    <a href="{% url 'tournament:admin_team_delete' team.id %}" class="btn-sm btn-delete" onclick="event.stopPropagation()">🗑️</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center" style="padding: 40px; color: #999;">
+                    {% if search or gender_filter %}
+                        Команды не найдены. Попробуйте изменить параметры поиска.
+                    {% else %}
+                        Нет команд. <a href="{% url 'tournament:admin_team_create' %}">Добавить первую команду</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-primary {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #333;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .admin-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .admin-table thead {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+    }
+    
+    .clickable-row {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .clickable-row:hover {
+        background: #f0f4ff !important;
+    }
+    
+    .badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .badge-m {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .badge-f {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        margin: 0 3px;
+        text-decoration: none;
+        font-size: 16px;
+        display: inline-block;
+        transition: transform 0.2s;
+    }
+    
+    .btn-sm:hover {
+        transform: scale(1.2);
+    }
+    
+    @media (max-width: 768px) {
+        .admin-table {
+            font-size: 12px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+    }
+</style>
+
+<script>
+    // Клик по строке таблицы
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+</script>
+{% endblock %}

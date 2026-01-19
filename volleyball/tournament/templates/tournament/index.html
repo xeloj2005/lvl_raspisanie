@@ -1,0 +1,57 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Волейбольные турниры{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    {% for group in groups %}
+    <div class="nav-group">
+        <div class="group-header">
+            <span>{{ group.name }}</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="tournaments-list">
+            {% for tournament in group.tournaments.all %}
+            <a href="{% url 'tournament:tournament_detail' tournament.id %}" class="tournament-link">
+                {{ tournament.name }} ({{ tournament.get_gender_display }})
+            </a>
+            {% empty %}
+            <div style="padding: 10px 15px; color: #999; font-size: 14px;">Нет турниров</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div style="padding: 20px; text-align: center; color: #999;">
+        Группы турниров не найдены
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>Добро пожаловать!</h2>
+<p style="margin-bottom: 20px; color: #666; font-size: 16px;">
+    Выберите турнир из меню слева (или нажмите на кнопку меню ☰ на мобильных устройствах)
+</p>
+
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; color: white; margin-top: 30px;">
+    <h3 style="color: white; margin-top: 0; font-size: 22px;">Доступные группы турниров:</h3>
+    {% if groups %}
+        <ul style="list-style: none; padding: 0;">
+        {% for group in groups %}
+            <li style="margin: 15px 0; font-size: 18px;">
+                <strong>{{ group.name }}</strong>
+                <span style="opacity: 0.8; font-size: 14px; margin-left: 10px;">
+                    ({{ group.tournaments.count }} 
+                    {% if group.tournaments.count == 1 %}турнир
+                    {% elif group.tournaments.count < 5 %}турнира
+                    {% else %}турниров{% endif %})
+                </span>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p style="opacity: 0.9;">Пока нет доступных турниров. Обратитесь к администратору.</p>
+    {% endif %}
+</div>
+{% endblock %}

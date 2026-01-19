@@ -1,0 +1,459 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{% if match %}Редактирование матча{% else %}Создание матча{% endif %}{% endblock %}
+{% block header %}{% if match %}Редактирование матча{% else %}Создание матча{% endif %}{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_matches_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Назад к списку матчей
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>{% if match %}Редактирование матча{% else %}Создание нового матча{% endif %}</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 800px; margin-top: 30px;">
+    <form method="post" class="admin-form">
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="tournament">Турнир *</label>
+                <select id="tournament" name="tournament" required onchange="updateTeams()">
+                    <option value="">Выберите турнир</option>
+                    {% for tournament in tournaments %}
+                    <option value="{{ tournament.id }}" {% if match and match.tournament.id == tournament.id %}selected{% endif %} data-teams="{{ tournament.teams.all|join:',' }}">
+                        {{ tournament.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="stage">Этап *</label>
+                <select id="stage" name="stage" required>
+                    <option value="">Выберите этап</option>
+                    {% for stage_value, stage_label in stages %}
+                    <option value="{{ stage_value }}" {% if match and match.stage == stage_value %}selected{% endif %}>{{ stage_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 60px 1fr; gap: 15px; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="team_a">Команда А *</label>
+                <select id="team_a" name="team_a" required>
+                    <option value="">Выберите команду</option>
+                    {% for tournament in tournaments %}
+                        {% if match and match.tournament.id == tournament.id %}
+                            {% for team in tournament.teams.all %}
+                            <option value="{{ team.id }}" {% if match and match.team_a.id == team.id %}selected{% endif %}>
+                                {{ team.name }} ({{ team.get_gender_display }})
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group" style="text-align: center; margin-bottom: 0;">
+                <label style="opacity: 0;">vs</label>
+                <div style="font-size: 24px; font-weight: 700; color: #667eea;">vs</div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="team_b">Команда Б *</label>
+                <select id="team_b" name="team_b" required>
+                    <option value="">Выберите команду</option>
+                    {% for tournament in tournaments %}
+                        {% if match and match.tournament.id == tournament.id %}
+                            {% for team in tournament.teams.all %}
+                            <option value="{{ team.id }}" {% if match and match.team_b.id == team.id %}selected{% endif %}>
+                                {{ team.name }} ({{ team.get_gender_display }})
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="venue">Место проведения</label>
+                <select id="venue" name="venue">
+                    <option value="">Не выбрано</option>
+                    {% for venue in venues %}
+                    <option value="{{ venue.id }}" {% if match and match.venue.id == venue.id %}selected{% endif %}>{{ venue.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group" id="round_number_group">
+                <label for="round_number">Номер тура</label>
+                <input type="number" id="round_number" name="round_number" 
+                       value="{% if match %}{{ match.round_number }}{% endif %}" 
+                       min="1" max="100">
+            </div>
+            
+            <div class="form-group">
+                <label for="date_time">Дата и время</label>
+                <input type="datetime-local" id="date_time" name="date_time" 
+                       value="{% if match and match.date_time %}{{ match.date_time|date:'Y-m-dTH:i' }}{% endif %}">
+            </div>
+        </div>
+        
+        <div class="form-group" style="padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+            <label>
+                <input type="checkbox" name="is_finished" {% if match and match.is_finished %}checked{% endif %} id="is_finished" onchange="toggleScoreFields()">
+                <strong>Матч завершен</strong>
+            </label>
+            <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">Если отмечено, заполните счет матча по партиям</p>
+        </div>
+        
+        <div id="score_fields" style="display: {% if match and match.is_finished %}block{% else %}none{% endif %};">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                <h4 style="margin-top: 0;">Счет по партиям (до 3 побед)</h4>
+                <p style="margin: 0 0 15px 0; color: #666; font-size: 13px;">
+                    Партии до 25 очков (5-я до 15) с разницей в 2 очка
+                </p>
+                
+                <div id="sets_container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
+                    {% for i in "12345" %}
+                    <div class="set-group">
+                        <div style="font-weight: 600; color: #667eea; margin-bottom: 10px;">Партия {{ i }}</div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" class="set-input set-a" name="set-a-{{ i }}" data-set="{{ i }}" placeholder="А" min="0" max="30" 
+                                   style="width: 50px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                            <span style="font-weight: 600;">:</span>
+                            <input type="number" class="set-input set-b" name="set-b-{{ i }}" data-set="{{ i }}" placeholder="Б" min="0" max="30"
+                                   style="width: 50px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                        </div>
+                        <div style="font-size: 12px; color: #999; margin-top: 5px;" class="set-status"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px; border: 1px solid #e9ecef;">
+                    <div style="display: grid; grid-template-columns: 1fr 60px 1fr; gap: 15px; align-items: center;">
+                        <div>
+                            <div style="font-size: 12px; color: #999;">Итого партии</div>
+                            <input type="number" id="sets_a" name="sets_a" placeholder="Партии А" min="0" max="3"
+                                   value="{% if match %}{{ match.sets_a }}{% endif %}"
+                                   style="width: 100%; padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 16px; font-weight: 600; background: #f8f9fa;" readonly>
+                        </div>
+                        <div style="text-align: center; font-size: 24px; font-weight: 700; color: #667eea;">:</div>
+                        <div>
+                            <div style="font-size: 12px; color: #999;">Итого партии</div>
+                            <input type="number" id="sets_b" name="sets_b" placeholder="Партии Б" min="0" max="3"
+                                   value="{% if match %}{{ match.sets_b }}{% endif %}"
+                                   style="width: 100%; padding: 10px; border: 2px solid #e9ecef; border-radius: 6px; font-size: 16px; font-weight: 600; background: #f8f9fa;" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button type="submit" class="btn-primary">
+                {% if match %}💾 Сохранить изменения{% else %}➕ Создать матч{% endif %}
+            </button>
+            <a href="{% url 'tournament:admin_matches_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .admin-form {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 12px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .btn-secondary {
+        background: #e9ecef;
+        color: #333;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #dee2e6;
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-form {
+            padding: 20px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+    }
+</style>
+
+<!-- Скрытый элемент для передачи set_scores в JavaScript -->
+<div id="match-data" data-set-scores="{{ match.set_scores|safe|default:'[]' }}" style="display: none;"></div>
+
+<script>
+    function updateTeams() {
+        // При выборе турнира обновляются доступные команды
+        const tournament = document.getElementById('tournament');
+        const selectedOption = tournament.options[tournament.selectedIndex];
+        // Реализация динамической загрузки команд может быть добавлена позже
+    }
+    
+    function toggleScoreFields() {
+        const isFinished = document.getElementById('is_finished').checked;
+        document.getElementById('score_fields').style.display = isFinished ? 'block' : 'none';
+        if (!isFinished) {
+            // Очищаем все поля партий при отмене
+            document.querySelectorAll('.set-input').forEach(input => input.value = '');
+            document.getElementById('sets_a').value = '';
+            document.getElementById('sets_b').value = '';
+        }
+    }
+    
+    function toggleRoundNumber() {
+        // Показываем номер тура только для регулярных туров
+        const stage = document.getElementById('stage').value;
+        const roundGroup = document.getElementById('round_number_group');
+        roundGroup.style.display = stage === 'REGULAR' ? 'block' : 'none';
+    }
+    
+    function validateSetScore(setNum, teamA, teamB) {
+        // Валидирует счет партии согласно волейбольным правилам
+        const isLastSet = setNum === 5;
+        const maxPoints = isLastSet ? 15 : 25;
+        const minDiff = 2;
+        
+        // Если одна из команд меньше maxPoints - не валидно
+        if (teamA < maxPoints && teamB < maxPoints) {
+            return false; // Еще не завершена
+        }
+        
+        // Если обе команды >= maxPoints, проверяем разницу
+        if (teamA >= maxPoints && teamB >= maxPoints) {
+            if (Math.abs(teamA - teamB) < minDiff) {
+                return false; // Разница менее 2
+            }
+        }
+        
+        return true; // Валидно
+    }
+    
+    function calculateSetWinner(setNum, teamA, teamB) {
+        if (!validateSetScore(setNum, teamA, teamB)) {
+            return null; // Не завершена
+        }
+        return teamA > teamB ? 'a' : 'b';
+    }
+    
+    function updateScores() {
+        // Обновляем автоматически при изменении любого поля партии
+        const setInputs = document.querySelectorAll('.set-input');
+        let setsWonA = 0;
+        let setsWonB = 0;
+        let allValid = true;
+        
+        // Проходим по всем партиям
+        for (let i = 1; i <= 5; i++) {
+            const inputA = document.querySelector(`.set-a[data-set="${i}"]`);
+            const inputB = document.querySelector(`.set-b[data-set="${i}"]`);
+            const statusDiv = document.querySelector(`.set-group:nth-child(${i}) .set-status`);
+            
+            const scoreA = parseInt(inputA.value) || 0;
+            const scoreB = parseInt(inputB.value) || 0;
+            
+            if (scoreA === 0 && scoreB === 0) {
+                statusDiv.textContent = '';
+                allValid = false;
+                continue;
+            }
+            
+            const isValid = validateSetScore(i, scoreA, scoreB);
+            const winner = calculateSetWinner(i, scoreA, scoreB);
+            
+            if (winner === 'a') {
+                setsWonA++;
+                statusDiv.textContent = '✓ Команда А';
+                statusDiv.style.color = '#155724';
+            } else if (winner === 'b') {
+                setsWonB++;
+                statusDiv.textContent = '✓ Команда Б';
+                statusDiv.style.color = '#155724';
+            } else if (!isValid && (scoreA > 0 || scoreB > 0)) {
+                statusDiv.textContent = 'Невалидный счет';
+                statusDiv.style.color = '#721c24';
+                allValid = false;
+            }
+            
+            // Если одна из команд получила 3 побед, остальные поля скрываем
+            if (setsWonA >= 3 || setsWonB >= 3) {
+                for (let j = i + 1; j <= 5; j++) {
+                    const nextA = document.querySelector(`.set-a[data-set="${j}"]`);
+                    const nextB = document.querySelector(`.set-b[data-set="${j}"]`);
+                    nextA.disabled = true;
+                    nextB.disabled = true;
+                    nextA.style.opacity = '0.5';
+                    nextB.style.opacity = '0.5';
+                }
+                break;
+            }
+        }
+        
+        // Включаем оставшиеся поля если они были отключены
+        if (setsWonA < 3 && setsWonB < 3) {
+            for (let j = 1; j <= 5; j++) {
+                const nextA = document.querySelector(`.set-a[data-set="${j}"]`);
+                const nextB = document.querySelector(`.set-b[data-set="${j}"]`);
+                nextA.disabled = false;
+                nextA.style.opacity = '1';
+                nextB.disabled = false;
+                nextB.style.opacity = '1';
+            }
+        }
+        
+        // Обновляем итоговый счет в партиях
+        document.getElementById('sets_a').value = setsWonA;
+        document.getElementById('sets_b').value = setsWonB;
+    }
+    
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        // Загружаем set_scores если редактируем существующий матч
+        const matchDataElement = document.getElementById('match-data');
+        if (matchDataElement) {
+            try {
+                const setScoresJSON = matchDataElement.getAttribute('data-set-scores');
+                const setScores = JSON.parse(setScoresJSON);
+                
+                if (setScores && Array.isArray(setScores) && setScores.length > 0) {
+                    // Заполняем поля партий загруженными значениями
+                    setScores.forEach((set, index) => {
+                        const setNum = index + 1;
+                        const inputA = document.querySelector(`.set-a[data-set="${setNum}"]`);
+                        const inputB = document.querySelector(`.set-b[data-set="${setNum}"]`);
+                        
+                        if (inputA && set.a !== undefined) inputA.value = set.a;
+                        if (inputB && set.b !== undefined) inputB.value = set.b;
+                    });
+                }
+            } catch (e) {
+                console.error('Ошибка при загрузке set_scores:', e);
+            }
+        }
+        
+        // Скрываем/показываем номер тура в зависимости от этапа
+        const stageSelect = document.getElementById('stage');
+        if (stageSelect) {
+            stageSelect.addEventListener('change', toggleRoundNumber);
+            toggleRoundNumber(); // Инициальное состояние
+        }
+        
+        // Добавляем слушатели на все поля партий
+        document.querySelectorAll('.set-input').forEach(input => {
+            input.addEventListener('change', updateScores);
+            input.addEventListener('keyup', updateScores);
+        });
+        
+        // Инициальный расчет, если редактируем существующий матч
+        if (document.getElementById('is_finished').checked) {
+            updateScores();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Управление турнирами{% endblock %}
+{% block header %}Управление турнирами{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_dashboard' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Панель администратора
+        </a>
+        
+        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
+            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link">👥 Команды</a>
+            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link">📍 Места проведения</a>
+            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link">📁 Группы турниров</a>
+            <a href="{% url 'tournament:admin_tournaments_list' %}" class="tournament-link current">🏆 Турниры</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0;">Турниры</h2>
+    <a href="{% url 'tournament:admin_tournament_create' %}" class="btn-primary">+ Добавить турнир</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Фильтры -->
+<form method="get" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 150px 150px auto; gap: 15px; align-items: end;">
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Поиск</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Название турнира..." 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Группа</label>
+            <select name="group" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                <option value="">Все</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}" {% if group_filter|stringformat:"s" == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Пол</label>
+            <select name="gender" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                <option value="">Все</option>
+                <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Мужские</option>
+                <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Женские</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn-primary">Применить</button>
+            {% if search or group_filter or gender_filter %}
+                <a href="{% url 'tournament:admin_tournaments_list' %}" class="btn-secondary" style="margin-left: 10px;">Сбросить</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<!-- Таблица турниров -->
+<div class="table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th style="width: 60px;">#</th>
+                <th>Название</th>
+                <th style="width: 120px;">Группа</th>
+                <th style="width: 80px;">Пол</th>
+                <th style="width: 80px;">Тип</th>
+                <th style="width: 100px;">Команд</th>
+                <th style="width: 120px;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tournament in tournaments %}
+            <tr class="clickable-row" data-href="{% url 'tournament:admin_tournament_edit' tournament.id %}">
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td><strong>{{ tournament.name }}</strong></td>
+                <td>{{ tournament.group.name }}</td>
+                <td>
+                    <span class="badge badge-{{ tournament.gender|lower }}">
+                        {{ tournament.get_gender_display }}
+                    </span>
+                </td>
+                <td>{{ tournament.get_tournament_type_display }}</td>
+                <td class="text-center">{{ tournament.teams.count }}</td>
+                <td class="text-center">
+                    <a href="{% url 'tournament:admin_tournament_edit' tournament.id %}" class="btn-sm btn-edit" onclick="event.stopPropagation()">✏️</a>
+                    <a href="{% url 'tournament:admin_tournament_delete' tournament.id %}" class="btn-sm btn-delete" onclick="event.stopPropagation()">🗑️</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center" style="padding: 40px; color: #999;">
+                    {% if search or group_filter or gender_filter %}
+                        Турниры не найдены. Попробуйте изменить параметры поиска.
+                    {% else %}
+                        Нет турниров. <a href="{% url 'tournament:admin_tournament_create' %}">Добавить первый турнир</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .admin-table thead {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #333;
+    }
+    
+    .admin-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .admin-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 14px;
+    }
+    
+    .admin-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .clickable-row {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .clickable-row:hover {
+        background: #f0f4ff !important;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .badge {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .badge-m {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .badge-f {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        margin: 0 3px;
+        text-decoration: none;
+        font-size: 16px;
+        display: inline-block;
+        transition: transform 0.2s;
+    }
+    
+    .btn-sm:hover {
+        transform: scale(1.2);
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #e9ecef;
+        color: #333;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #dee2e6;
+    }
+    
+    @media (max-width: 1024px) {
+        .admin-table {
+            font-size: 13px;
+        }
+        
+        .admin-table th,
+        .admin-table td {
+            padding: 12px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .admin-table {
+            font-size: 12px;
+        }
+        
+        .admin-table th,
+        .admin-table td {
+            padding: 10px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        
+        th {
+            word-break: break-word;
+        }
+    }
+</style>
+
+<script>
+    // Клик по строке таблицы
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+</script>
+{% endblock %}

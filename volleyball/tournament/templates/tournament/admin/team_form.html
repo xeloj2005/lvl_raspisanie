@@ -1,0 +1,148 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{% if team %}Редактирование команды{% else %}Создание команды{% endif %}{% endblock %}
+{% block header %}{% if team %}Редактирование команды{% else %}Создание команды{% endif %}{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_teams_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Назад к списку команд
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>{% if team %}Редактирование команды{% else %}Создание новой команды{% endif %}</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 600px; margin-top: 30px;">
+    <form method="post" class="admin-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="name">Название команды *</label>
+            <input type="text" id="name" name="name" value="{% if team %}{{ team.name }}{% endif %}" 
+                   required maxlength="200" placeholder="Введите название команды">
+        </div>
+        
+        <div class="form-group">
+            <label for="gender">Пол команды *</label>
+            <select id="gender" name="gender" required>
+                <option value="">Выберите пол</option>
+                <option value="M" {% if team and team.gender == 'M' %}selected{% endif %}>Мужская</option>
+                <option value="F" {% if team and team.gender == 'F' %}selected{% endif %}>Женская</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button type="submit" class="btn-primary">
+                {% if team %}💾 Сохранить изменения{% else %}➕ Создать команду{% endif %}
+            </button>
+            <a href="{% url 'tournament:admin_teams_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .admin-form {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 12px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        transition: transform 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+    
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}

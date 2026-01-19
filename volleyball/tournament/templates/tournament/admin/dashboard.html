@@ -1,0 +1,134 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Панель администратора{% endblock %}
+{% block header %}Панель администратора{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:index' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Вернуться на сайт
+        </a>
+        
+        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
+            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link">👥 Команды</a>
+            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link">📍 Места проведения</a>
+            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link">📁 Группы турниров</a>
+            <a href="{% url 'tournament:admin_tournaments_list' %}" class="tournament-link">🏆 Турниры</a>
+            <a href="{% url 'tournament:admin_matches_list' %}" class="tournament-link">⚽ Матчи</a>
+        </div>
+
+        <div style="border-top: 1px solid #e9ecef; margin-top: 20px; padding-top: 20px;">
+            <a href="{% url 'tournament:admin_logout' %}" class="tournament-link" style="color: #dc3545;">
+                🚪 Выйти
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>Добро пожаловать в панель администратора!</h2>
+<p style="color: #666; margin-bottom: 30px;">Здесь вы можете управлять всеми данными системы</p>
+
+{% if messages %}
+    {% for message in messages %}
+    <div style="padding: 15px; margin-bottom: 20px; border-radius: 8px; background: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px;">
+    <!-- Команды -->
+    <a href="{% url 'tournament:admin_teams_list' %}" style="text-decoration: none;">
+        <div class="admin-card">
+            <div class="admin-card-icon">👥</div>
+            <h3>Команды</h3>
+            <div class="admin-card-count">{{ teams_count }}</div>
+            <p>Управление командами</p>
+        </div>
+    </a>
+    
+    <!-- Места проведения -->
+    <a href="{% url 'tournament:admin_venues_list' %}" style="text-decoration: none;">
+        <div class="admin-card">
+            <div class="admin-card-icon">📍</div>
+            <h3>Места проведения</h3>
+            <div class="admin-card-count">{{ venues_count }}</div>
+            <p>Управление площадками</p>
+        </div>
+    </a>
+    
+    <!-- Группы турниров -->
+    <a href="{% url 'tournament:admin_groups_list' %}" style="text-decoration: none;">
+        <div class="admin-card">
+            <div class="admin-card-icon">📁</div>
+            <h3>Группы турниров</h3>
+            <div class="admin-card-count">{{ groups_count }}</div>
+            <p>Управление группами</p>
+        </div>
+    </a>
+    
+    <!-- Турниры -->
+    <a href="{% url 'tournament:admin_tournaments_list' %}" style="text-decoration: none;">
+        <div class="admin-card">
+            <div class="admin-card-icon">🏆</div>
+            <h3>Турниры</h3>
+            <div class="admin-card-count">{{ tournaments_count }}</div>
+            <p>Управление турнирами</p>
+        </div>
+    </a>
+    
+    <!-- Матчи -->
+    <a href="{% url 'tournament:admin_matches_list' %}" style="text-decoration: none;">
+        <div class="admin-card">
+            <div class="admin-card-icon">⚽</div>
+            <h3>Матчи</h3>
+            <div class="admin-card-count">{{ matches_count }}</div>
+            <p>Управление матчами</p>
+        </div>
+    </a>
+</div>
+
+<style>
+    .admin-card {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #333;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    
+    .admin-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(135, 206, 235, 0.3);
+    }
+    
+    .admin-card-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    
+    .admin-card h3 {
+        color: #333;
+        margin: 10px 0;
+        font-size: 20px;
+    }
+    
+    .admin-card-count {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 15px 0;
+    }
+    
+    .admin-card p {
+        opacity: 0.9;
+        margin: 0;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}

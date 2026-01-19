@@ -1,0 +1,286 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{% if tournament %}Редактирование турнира{% else %}Создание турнира{% endif %}{% endblock %}
+{% block header %}{% if tournament %}Редактирование турнира{% else %}Создание турнира{% endif %}{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_tournaments_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← Назад к списку турниров
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>{% if tournament %}Редактирование турнира{% else %}Создание нового турнира{% endif %}</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 700px; margin-top: 30px;">
+    <form method="post" class="admin-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="name">Название турнира *</label>
+            <input type="text" id="name" name="name" value="{% if tournament %}{{ tournament.name }}{% endif %}" 
+                   required maxlength="200" placeholder="Введите название турнира">
+        </div>
+        
+        <div class="form-group">
+            <label for="group">Группа *</label>
+            <select id="group" name="group" required>
+                <option value="">Выберите группу</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}" {% if tournament and tournament.group.id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="gender">Пол турнира *</label>
+                <select id="gender" name="gender" required>
+                    <option value="">Выберите пол</option>
+                    <option value="M" {% if tournament and tournament.gender == 'M' %}selected{% endif %}>Мужской</option>
+                    <option value="F" {% if tournament and tournament.gender == 'F' %}selected{% endif %}>Женский</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tournament_type">Тип турнира *</label>
+                <select id="tournament_type" name="tournament_type" required>
+                    <option value="LEAGUE" {% if tournament and tournament.tournament_type == 'LEAGUE' %}selected{% endif %}>Лига (круговая система)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="number_of_rounds">Количество кругов *</label>
+                <input type="number" id="number_of_rounds" name="number_of_rounds" 
+                       value="{% if tournament %}{{ tournament.number_of_rounds }}{% else %}1{% endif %}" 
+                       required min="1" max="10">
+            </div>
+            
+            <div class="form-group">
+                <label for="order">Порядок отображения</label>
+                <input type="number" id="order" name="order" 
+                       value="{% if tournament %}{{ tournament.order }}{% else %}0{% endif %}" 
+                       min="0" max="1000">
+            </div>
+        </div>
+        
+        <div class="form-group" style="padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+            <label>
+                <input type="checkbox" name="has_playoff" {% if tournament and tournament.has_playoff %}checked{% endif %} id="has_playoff">
+                <strong>Включить плейофф</strong>
+            </label>
+            <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">Если отмечено, турнир будет иметь плейофф этап</p>
+        </div>
+        
+        <div class="form-group" id="playoff_options" style="display: {% if tournament and tournament.has_playoff %}block{% else %}none{% endif %};">
+            <label for="playoff_teams">Количество команд в плейофф</label>
+            <select id="playoff_teams" name="playoff_teams">
+                <option value="">Выберите количество</option>
+                <option value="4" {% if tournament and tournament.playoff_teams == 4 %}selected{% endif %}>4 команды</option>
+                <option value="8" {% if tournament and tournament.playoff_teams == 8 %}selected{% endif %}>8 команд</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="teams">Команды</label>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">Выберите команды для участия в турнире (опционально)</p>
+            <div class="teams-selector">
+                {% for team in teams %}
+                <label class="team-checkbox">
+                    <input type="checkbox" name="teams" value="{{ team.id }}" 
+                           {% if tournament and team in selected_teams %}checked{% endif %}>
+                    <span class="team-label">{{ team.name }} <span class="team-gender">({{ team.get_gender_display }})</span></span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button type="submit" class="btn-primary">
+                {% if tournament %}💾 Сохранить изменения{% else %}➕ Создать турнир{% endif %}
+            </button>
+            <a href="{% url 'tournament:admin_tournaments_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .admin-form {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 12px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .teams-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+    }
+    
+    .team-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .team-checkbox:hover {
+        background: #f0f4ff;
+    }
+    
+    .team-checkbox input[type="checkbox"] {
+        width: auto;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    
+    .team-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 14px;
+    }
+    
+    .team-gender {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .btn-secondary {
+        background: #e9ecef;
+        color: #333;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background: #dee2e6;
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-form {
+            padding: 20px;
+        }
+        
+        .teams-selector {
+            grid-template-columns: 1fr;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+    }
+</style>
+
+<script>
+    // Показать/скрыть опции плейофф
+    document.getElementById('has_playoff').addEventListener('change', function() {
+        document.getElementById('playoff_options').style.display = this.checked ? 'block' : 'none';
+    });
+</script>
+{% endblock %}

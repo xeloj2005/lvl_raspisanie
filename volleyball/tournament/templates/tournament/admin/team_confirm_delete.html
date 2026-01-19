@@ -1,0 +1,98 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Удаление команды{% endblock %}
+{% block header %}Удаление команды{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:admin_teams_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block;">
+            ← Назад к списку команд
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px;">
+    <div class="delete-warning">
+        <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+        <h2 style="color: #dc3545; margin-bottom: 15px;">Подтверждение удаления</h2>
+        <p style="font-size: 16px; margin-bottom: 30px;">
+            Вы действительно хотите удалить команду <strong>"{{ team.name }}"</strong>?
+        </p>
+        
+        {% if tournaments_count > 0 or matches_count > 0 %}
+        <div class="warning-info">
+            <strong>Внимание!</strong> Эта команда связана с:
+            <ul style="margin: 15px 0; padding-left: 20px;">
+                {% if tournaments_count > 0 %}
+                <li>Турниров: {{ tournaments_count }}</li>
+                {% endif %}
+                {% if matches_count > 0 %}
+                <li>Матчей: {{ matches_count }}</li>
+                {% endif %}
+            </ul>
+            <p>При удалении команды все связанные данные будут также удалены!</p>
+        </div>
+        {% endif %}
+        
+        <form method="post" style="margin-top: 30px;">
+            {% csrf_token %}
+            <div style="display: flex; gap: 15px;">
+                <button type="submit" class="btn-danger">🗑️ Да, удалить</button>
+                <a href="{% url 'tournament:admin_teams_list' %}" class="btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .delete-warning {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        padding: 40px;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .warning-info {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: left;
+        margin: 20px 0;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        transition: background 0.2s;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        font-size: 15px;
+    }
+</style>
+{% endblock %}

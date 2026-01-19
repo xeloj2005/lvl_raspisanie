@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Волейбольные турниры{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+            color: #333;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        /* Burger Menu */
+        .burger-btn {
+            display: block;
+            background: transparent;
+            border: none;
+            color: #333;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: 280px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .nav-overlay.active {
+            left: 0;
+        }
+
+        .nav-header {
+            background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+            color: #333;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-close {
+            background: transparent;
+            border: none;
+            color: #333;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .overlay-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Navigation */
+        .nav-groups {
+            padding: 20px;
+        }
+
+        .nav-group {
+            margin-bottom: 20px;
+        }
+
+        .group-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #3b72ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .group-header:hover {
+            background: #e9ecef;
+        }
+
+        .group-header .arrow {
+            transition: transform 0.3s;
+        }
+
+        .group-header.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .tournaments-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .tournaments-list.active {
+            max-height: 500px;
+        }
+
+        .tournament-link {
+            display: block;
+            padding: 10px 15px;
+            margin: 5px 0;
+            margin-left: 15px;
+            color: #555;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tournament-link:hover {
+            background: #f8f9fa;
+            border-left-color: #FFD700;
+            color: #FFD700;
+        }
+
+        /* Content */
+        .content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .content h2 {
+            color: #3b72ff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .content h3 {
+            color: #ffb700;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #3b72ff;
+            color: #333;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Match cards */
+        .match-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: auto 1fr auto 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .match-datetime {
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .match-team {
+            font-weight: 500;
+        }
+
+        .match-score {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .match-venue {
+            font-size: 13px;
+            color: #666;
+            text-align: right;
+        }
+
+        .round-section {
+            margin: 30px 0;
+        }
+
+        .round-title {
+            background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        /* Matrix table */
+        .matrix-table {
+            font-size: 12px;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            padding: 8px 5px;
+            text-align: center;
+        }
+
+        .matrix-table .team-name {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .matrix-table .self-cell {
+            background: #e9ecef;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 0;
+            }
+
+            .header .container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 5px;
+            }
+
+            .match-card {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .match-datetime,
+            .match-venue {
+                text-align: center;
+            }
+
+            .matrix-table {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+
+            table {
+                font-size: 11px;
+            }
+
+            th, td {
+                padding: 6px 3px;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <button class="burger-btn" id="burgerBtn">☰</button>
+            <h1>{% block header %}Волейбольные турниры{% endblock %}</h1>
+        </div>
+    </div>
+
+    <div class="overlay-backdrop" id="overlayBackdrop"></div>
+
+    <nav class="nav-overlay" id="navOverlay">
+        <div class="nav-header">
+            <h2>Меню</h2>
+            <button class="nav-close" id="navClose">✕</button>
+        </div>
+        {% block navigation %}{% endblock %}
+    </nav>
+
+    <div class="container">
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        const burgerBtn = document.getElementById('burgerBtn');
+        const navOverlay = document.getElementById('navOverlay');
+        const navClose = document.getElementById('navClose');
+        const overlayBackdrop = document.getElementById('overlayBackdrop');
+
+        function openNav() {
+            navOverlay.classList.add('active');
+            overlayBackdrop.classList.add('active');
+        }
+
+        function closeNav() {
+            navOverlay.classList.remove('active');
+            overlayBackdrop.classList.remove('active');
+        }
+
+        burgerBtn.addEventListener('click', openNav);
+        navClose.addEventListener('click', closeNav);
+        overlayBackdrop.addEventListener('click', closeNav);
+
+        // Toggle tournament groups
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.group-header')) {
+                const header = e.target.closest('.group-header');
+                const list = header.nextElementSibling;
+
+                header.classList.toggle('active');
+                list.classList.toggle('active');
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

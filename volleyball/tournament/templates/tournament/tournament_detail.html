@@ -1,0 +1,567 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{{ tournament.name }} - Волейбольные турниры{% endblock %}
+
+{% block header %}{{ tournament.name }}{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    {# Показываем все группы для навигации #}
+    {% load static %}
+    <div class="nav-groups">
+        {% for group in all_groups %}
+        <div class="nav-group">
+            <div class="group-header {% if group.id == tournament.group.id %}active{% endif %}" onclick="event.stopPropagation(); toggleGroup(this)">
+                <span>{{ group.name }}</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="tournaments-list {% if group.id == tournament.group.id %}active{% endif %}">
+                {% for t in group.tournaments.all %}
+                <a href="{% url 'tournament:tournament_detail' t.id %}"
+                   class="tournament-link {% if t.id == tournament.id %}current{% endif %}">
+                    {{ t.name }} ({{ t.get_gender_display }})
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        <div style="padding: 15px; border-top: 1px solid #e9ecef;">
+            <a href="{% url 'tournament:index' %}" style="color: #3b72ff; text-decoration: none; font-weight: 500;">
+                ← Все турниры
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h2>{{ tournament.name }}</h2>
+    <div style="color: #666; margin-top: 10px;">
+        <span style="background: #e9ecef; padding: 5px 12px; border-radius: 15px; font-size: 14px; margin-right: 10px;">
+            {{ tournament.get_gender_display }}
+        </span>
+        <span style="background: #e9ecef; padding: 5px 12px; border-radius: 15px; font-size: 14px;">
+            {{ tournament.get_tournament_type_display }}
+        </span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" style="margin-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+    <button class="tab-btn active" data-tab="standings">Турнирная таблица</button>
+    {% if tournament.number_of_rounds > 1 %}
+    <button class="tab-btn" data-tab="matrix1">Матрица (1 круг)</button>
+    <button class="tab-btn" data-tab="matrix2">Матрица (2 круг)</button>
+    {% else %}
+    <button class="tab-btn" data-tab="matrix1">Матричная таблица</button>
+    {% endif %}
+    {% if tournament.has_playoff %}
+    <button class="tab-btn" data-tab="playoff">Плейофф</button>
+    {% endif %}
+</div>
+
+<!-- Турнирная таблица -->
+<div class="tab-content active" id="standings">
+    <h3>Турнирная таблица</h3>
+    <div class="table-wrapper">
+        <table class="standings-table">
+            <thead>
+                <tr>
+                    <th class="text-center">#</th>
+                    <th class="team-name-col">Команда</th>
+                    <th class="text-center" title="Игры">И</th>
+                    <th class="text-center" title="Победы">В</th>
+                    <th class="text-center" title="Поражения">П</th>
+                    <th class="text-center" title="Выигр./Проигр. партии">С+/С-</th>
+                    <th class="text-center" title="Выигр./Проигр. очки">О+/О-</th>
+                    <th class="text-center points-col" title="Турнирные очки (3 за 3:0 и 3:1, 2 за 3:2, 1 за 2:3, 0 за 1:3 и 0:3)"><strong>О</strong></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for standing in standings %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="team-name-cell">{{ standing.team.name }}</td>
+                    <td class="text-center">{{ standing.played }}</td>
+                    <td class="text-center">{{ standing.won }}</td>
+                    <td class="text-center">{{ standing.lost }}</td>
+                    <td class="text-center">{{ standing.sets_won }}/{{ standing.sets_lost }}</td>
+                    <td class="text-center">{{ standing.points_won }}/{{ standing.points_lost }}</td>
+                    <td class="text-center points-col"><strong>{{ standing.tournament_points }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center" style="padding: 20px; color: #999;">
+                        Нет данных
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div style="margin-top: 15px; font-size: 13px; color: #666;">
+        <strong>Обозначения:</strong> И - игры | В - победы | П - поражения | С+/С- - выигранные/проигранные партии | О+/О- - выигранные/проигранные очки | Т.О. - турнирные очки
+    </div>
+</div>
+
+<!-- Матричная таблица (1 круг) -->
+<div class="tab-content" id="matrix1">
+    <h3>Матричная таблица{% if tournament.number_of_rounds > 1 %} (1 круг){% endif %}</h3>
+    <div class="table-wrapper">
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Команда</th>
+                    {% for team in matrix.teams %}
+                    <th>{{ forloop.counter }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix.matrix %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="team-name">{{ row.team.name }}</td>
+                    {% for cell in row.results %}
+                        {% if cell.is_self %}
+                            <td class="self-cell">—</td>
+                        {% else %}
+                            <td>
+                                {% if cell.scores.0 != '-' %}
+                                    {{ cell.scores.0 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Матричная таблица (2 круг) -->
+{% if tournament.number_of_rounds > 1 %}
+<div class="tab-content" id="matrix2">
+    <h3>Матричная таблица (2 круг)</h3>
+    <div class="table-wrapper">
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Команда</th>
+                    {% for team in matrix.teams %}
+                    <th>{{ forloop.counter }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix.matrix %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="team-name">{{ row.team.name }}</td>
+                    {% for cell in row.results %}
+                        {% if cell.is_self %}
+                            <td class="self-cell">—</td>
+                        {% else %}
+                            <td>
+                                {% if cell.scores|length > 1 %}
+                                    {{ cell.scores.1 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Плейофф -->
+{% if tournament.has_playoff %}
+<div class="tab-content" id="playoff">
+    <h3>Плейофф</h3>
+    {% load static %}
+    
+    {% if playoff_matches %}
+        {% for stage_name, stage_matches in playoff_matches %}
+        <div class="round-section">
+            <div class="round-title">{{ stage_name }}</div>
+            {% for match in stage_matches %}
+            <div class="match-card">
+                <div class="match-datetime">
+                    {% if match.date_time %}
+                        {{ match.date_time|date:"d.m.Y" }}<br>
+                        {{ match.date_time|date:"H:i" }}
+                    {% else %}
+                        Не назначено
+                    {% endif %}
+                </div>
+                <div class="match-team">{{ match.team_a.name }}</div>
+                <div class="match-score">
+                    {% if match.is_finished %}
+                        {{ match.sets_a }}:{{ match.sets_b }}
+                    {% else %}
+                        vs
+                    {% endif %}
+                </div>
+                <div class="match-team">{{ match.team_b.name }}</div>
+                {% if match.venue %}
+                <div class="match-venue">{{ match.venue.name }}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="text-align: center; color: #999; padding: 20px;">
+                Нет матчей на этом этапе
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: #999;">
+            Матчи плейофф еще не созданы.<br>
+            Плейофф будет автоматически сгенерирован когда все регулярные матчи будут сыграны.
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Расписание - вне табов, под таблицами -->
+<div style="margin-top: 50px;">
+    <h2>Расписание игр</h2>
+    {% for round_name, matches in schedule %}
+    <div class="round-section">
+        <div class="round-title">{{ round_name }}</div>
+        {% for match in matches %}
+        <div class="match-card">
+            <div class="match-datetime">
+                {% if match.date_time %}
+                    {{ match.date_time|date:"d.m.Y" }}<br>
+                    {{ match.date_time|date:"H:i" }}
+                {% else %}
+                    Дата не назначена
+                {% endif %}
+            </div>
+            <div class="match-team">{{ match.team_a.name }}</div>
+            <div class="match-score">
+                {% if match.is_finished %}
+                    {{ match.get_score_display }}
+                {% else %}
+                    vs
+                {% endif %}
+            </div>
+            <div class="match-team">{{ match.team_b.name }}</div>
+            <div class="match-venue">
+                {% if match.venue %}
+                    📍 {{ match.venue.name }}
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div style="padding: 20px; text-align: center; color: #999;">
+            Матчи не назначены
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div style="padding: 40px; text-align: center; color: #999;">
+        Расписание пока не составлено
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .tabs {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        background: #f8f9fa;
+        border: none;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        background: #e9ecef;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #3b72ff;
+        border-bottom: 3px solid #3b72ff;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .tournament-link.current {
+        background: #f8f9fa;
+        border-left-color: #3b72ff;
+        color: #3b72ff;
+        font-weight: 600;
+    }
+
+    /* Таблицы */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    table thead {
+        background: #003DA5;
+        color: white;
+        font-weight: 600;
+    }
+
+    table th {
+        padding: 15px 8px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 14px;
+    }
+
+    table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .text-center {
+        text-align: center !important;
+    }
+
+    .team-name-col {
+        min-width: 150px;
+    }
+
+    .team-name-cell {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .points-col {
+        background-color: #f0f4ff;
+        font-weight: 700;
+        color: #3b72ff;
+    }
+
+    /* Матча карточка */
+    .round-section {
+        margin-bottom: 30px;
+    }
+
+    .round-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #3b72ff;
+        padding: 15px 20px;
+        background: linear-gradient(135deg, rgba(220, 36, 31, 0.08) 0%, rgba(0, 61, 165, 0.08) 100%);
+        border-left: 4px solid #54a4ff;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .match-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .match-datetime {
+        font-size: 12px;
+        color: #666;
+        text-align: center;
+        min-width: 70px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .match-team {
+        flex: 1;
+        min-width: 150px;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+    }
+
+    .match-score {
+        font-size: 18px;
+        font-weight: 700;
+        color: #000;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .match-venue {
+        font-size: 12px;
+        color: #666;
+        width: 100%;
+        text-align: center;
+        padding-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .tabs {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            padding: 10px 15px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        /* Линейная таблица для мобильных */
+        table {
+            font-size: 14px;
+        }
+
+        table th {
+            padding: 12px 8px;
+            font-size: 13px;
+        }
+
+        table td {
+            padding: 11px 8px;
+            font-size: 14px;
+        }
+
+        .team-name-col {
+            min-width: 130px;
+        }
+
+        .match-card {
+            flex-direction: column;
+            padding: 12px;
+            gap: 10px;
+        }
+
+        .match-datetime {
+            width: 100%;
+            min-width: unset;
+        }
+
+        .match-team {
+            width: 100%;
+            min-width: unset;
+            font-size: 16px;
+        }
+
+        .match-score {
+            width: 100%;
+            font-size: 20px;
+        }
+
+        .match-venue {
+            width: 100%;
+            font-size: 13px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        table th {
+            padding: 10px 5px;
+            font-size: 12px;
+        }
+
+        table td {
+            padding: 10px 5px;
+            font-size: 13px;
+        }
+
+        .team-name-col {
+            min-width: 110px;
+        }
+
+        .team-name-cell {
+            font-size: 12px;
+        }
+    }
+</style>
+
+<script>
+    // Group toggle function
+    function toggleGroup(header) {
+        const list = header.nextElementSibling;
+        const isActive = list.classList.contains('active');
+        
+        // Close all other lists
+        document.querySelectorAll('.tournaments-list').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.group-header').forEach(h => h.classList.remove('active'));
+        
+        // Toggle current
+        if (!isActive) {
+            list.classList.add('active');
+            header.classList.add('active');
+        }
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.dataset.tab;
+            
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            this.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+</script>
+{% endblock %}
