@@ -57,15 +57,6 @@
                 <label for="team_a">Команда А *</label>
                 <select id="team_a" name="team_a" required>
                     <option value="">Выберите команду</option>
-                    {% for tournament in tournaments %}
-                        {% if match and match.tournament.id == tournament.id %}
-                            {% for team in tournament.teams.all %}
-                            <option value="{{ team.id }}" {% if match and match.team_a.id == team.id %}selected{% endif %}>
-                                {{ team.name }} ({{ team.get_gender_display }})
-                            </option>
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
                 </select>
             </div>
             
@@ -78,15 +69,6 @@
                 <label for="team_b">Команда Б *</label>
                 <select id="team_b" name="team_b" required>
                     <option value="">Выберите команду</option>
-                    {% for tournament in tournaments %}
-                        {% if match and match.tournament.id == tournament.id %}
-                            {% for team in tournament.teams.all %}
-                            <option value="{{ team.id }}" {% if match and match.team_b.id == team.id %}selected{% endif %}>
-                                {{ team.name }} ({{ team.get_gender_display }})
-                            </option>
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
                 </select>
             </div>
         </div>
@@ -286,14 +268,85 @@
 </style>
 
 <!-- Скрытый элемент для передачи set_scores в JavaScript -->
-<div id="match-data" data-set-scores="{{ match.set_scores|safe|default:'[]' }}" style="display: none;"></div>
+<div id="match-data" 
+     data-set-scores="{{ match.set_scores|safe|default:'[]' }}"
+     {% if match %}data-match-team-a-id="{{ match.team_a.id }}"{% endif %}
+     {% if match %}data-match-team-b-id="{{ match.team_b.id }}"{% endif %}
+     style="display: none;"></div>
+
+<!-- Скрытый элемент для передачи данных турниров и команд -->
+<div id="tournaments-data" style="display: none;">
+    {% for tournament in tournaments %}
+    <div class="tournament-teams" data-tournament-id="{{ tournament.id }}" data-tournament-name="{{ tournament.name }}">
+        {% for team in tournament.teams.all %}
+        <span class="team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" data-team-gender="{{ team.get_gender_display }}">{{ team.name }}</span>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
 
 <script>
     function updateTeams() {
         // При выборе турнира обновляются доступные команды
         const tournament = document.getElementById('tournament');
-        const selectedOption = tournament.options[tournament.selectedIndex];
-        // Реализация динамической загрузки команд может быть добавлена позже
+        const selectedTournamentId = tournament.value;
+        const teamASelect = document.getElementById('team_a');
+        const teamBSelect = document.getElementById('team_b');
+        
+        // Сохраняем текущие выбранные значения перед очисткой
+        const currentTeamAId = teamASelect.value;
+        const currentTeamBId = teamBSelect.value;
+        
+        // Очищаем текущие опции команд
+        teamASelect.innerHTML = '<option value="">Выберите команду</option>';
+        teamBSelect.innerHTML = '<option value="">Выберите команду</option>';
+        
+        // Если турнир не выбран, выходим
+        if (!selectedTournamentId) {
+            return;
+        }
+        
+        // Находим турнир в скрытом контейнере
+        const tournamentsData = document.getElementById('tournaments-data');
+        const tournamentDiv = tournamentsData.querySelector(`[data-tournament-id="${selectedTournamentId}"]`);
+        
+        if (!tournamentDiv) {
+            return;
+        }
+        
+        // Получаем все команды этого турнира
+        const teams = tournamentDiv.querySelectorAll('.team');
+        
+        // Добавляем команды в оба селекта
+        teams.forEach(teamElement => {
+            const teamId = teamElement.getAttribute('data-team-id');
+            const teamName = teamElement.getAttribute('data-team-name');
+            const teamGender = teamElement.getAttribute('data-team-gender');
+            
+            const optionA = document.createElement('option');
+            optionA.value = teamId;
+            optionA.textContent = `${teamName} (${teamGender})`;
+            teamASelect.appendChild(optionA);
+            
+            const optionB = document.createElement('option');
+            optionB.value = teamId;
+            optionB.textContent = `${teamName} (${teamGender})`;
+            teamBSelect.appendChild(optionB);
+        });
+        
+        // Восстанавливаем выбранные значения если редактируем матч
+        const matchElement = document.getElementById('match-data');
+        if (matchElement && matchElement.dataset.matchTeamAId) {
+            teamASelect.value = matchElement.dataset.matchTeamAId;
+        } else if (currentTeamAId) {
+            teamASelect.value = currentTeamAId;
+        }
+        
+        if (matchElement && matchElement.dataset.matchTeamBId) {
+            teamBSelect.value = matchElement.dataset.matchTeamBId;
+        } else if (currentTeamBId) {
+            teamBSelect.value = currentTeamBId;
+        }
     }
     
     function toggleScoreFields() {
@@ -442,6 +495,14 @@
         if (stageSelect) {
             stageSelect.addEventListener('change', toggleRoundNumber);
             toggleRoundNumber(); // Инициальное состояние
+        }
+        
+        // Добавляем слушатель на выбор турнира и загружаем команды
+        const tournamentSelect = document.getElementById('tournament');
+        if (tournamentSelect) {
+            tournamentSelect.addEventListener('change', updateTeams);
+            // Вызываем updateTeams при загрузке страницы, чтобы загрузить команды для выбранного турнира
+            updateTeams();
         }
         
         // Добавляем слушатели на все поля партий
