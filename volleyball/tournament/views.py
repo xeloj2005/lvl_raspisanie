@@ -188,8 +188,13 @@ def get_schedule_by_rounds(tournament):
     matches = Match.objects.filter(tournament=tournament).order_by('date_time', 'round_number')
 
     schedule = defaultdict(list)
+    max_round_from_matches = 0
 
     for match in matches:
+        # Отслеживаем максимальный round_number из матчей
+        if match.stage == 'REGULAR' and match.round_number:
+            max_round_from_matches = max(max_round_from_matches, match.round_number)
+        
         if match.stage == 'PRELIMINARY':
             key = 'Предварительный этап'
         elif match.stage == 'REGULAR':
@@ -214,17 +219,10 @@ def get_schedule_by_rounds(tournament):
     if 'Предварительный этап' in schedule:
         schedule_list.append(('Предварительный этап', schedule['Предварительный этап']))
 
-    # Потом туры - вычисляем максимальный номер тура из имеющихся матчей
-    max_round = 0
-    for key in schedule:
-        if key.startswith('Тур '):
-            try:
-                round_num = int(key.split()[1])
-                max_round = max(max_round, round_num)
-            except (ValueError, IndexError):
-                pass
-
-    # Если тур не задан, вычисляем максимальное количество туров
+    # Потом туры - используем максимальный номер тура из матчей
+    max_round = max_round_from_matches
+    
+    # Если туры не задали явно, вычисляем максимальное количество туров
     if max_round == 0:
         teams_count = tournament.teams.count()
         max_round = teams_count * tournament.number_of_rounds if teams_count > 0 else 0
