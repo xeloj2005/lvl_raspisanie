@@ -214,11 +214,22 @@ def get_schedule_by_rounds(tournament):
     if 'Предварительный этап' in schedule:
         schedule_list.append(('Предварительный этап', schedule['Предварительный этап']))
 
-    # Потом туры
-    max_rounds = tournament.teams.count() - 1 if tournament.teams.count() > 0 else 0
-    max_rounds *= tournament.number_of_rounds
+    # Потом туры - вычисляем максимальный номер тура из имеющихся матчей
+    max_round = 0
+    for key in schedule:
+        if key.startswith('Тур '):
+            try:
+                round_num = int(key.split()[1])
+                max_round = max(max_round, round_num)
+            except (ValueError, IndexError):
+                pass
 
-    for i in range(1, max_rounds + 1):
+    # Если тур не задан, вычисляем максимальное количество туров
+    if max_round == 0:
+        teams_count = tournament.teams.count()
+        max_round = teams_count * tournament.number_of_rounds if teams_count > 0 else 0
+
+    for i in range(1, max_round + 1):
         key = f"Тур {i}"
         if key in schedule:
             schedule_list.append((key, schedule[key]))
