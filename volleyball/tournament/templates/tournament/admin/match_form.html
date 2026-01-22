@@ -308,14 +308,25 @@
         
         // Находим турнир в скрытом контейнере
         const tournamentsData = document.getElementById('tournaments-data');
+        if (!tournamentsData) {
+            console.warn('tournaments-data контейнер не найден');
+            return;
+        }
+        
         const tournamentDiv = tournamentsData.querySelector(`[data-tournament-id="${selectedTournamentId}"]`);
         
         if (!tournamentDiv) {
+            console.warn(`Турнир с ID ${selectedTournamentId} не найден в контейнере`);
             return;
         }
         
         // Получаем все команды этого турнира
         const teams = tournamentDiv.querySelectorAll('.team');
+        
+        if (teams.length === 0) {
+            console.warn(`Команды для турнира ${selectedTournamentId} не найдены`);
+            return;
+        }
         
         // Добавляем команды в оба селекта
         teams.forEach(teamElement => {
@@ -347,6 +358,22 @@
         } else if (currentTeamBId) {
             teamBSelect.value = currentTeamBId;
         }
+    }
+    
+    function initializeTeamsWithRetry(attempts = 0, maxAttempts = 10) {
+        // Пытаемся загрузить команды с повторными попытками
+        const tournamentsData = document.getElementById('tournaments-data');
+        
+        if (!tournamentsData) {
+            if (attempts < maxAttempts) {
+                // Если контейнер еще не готов, повторим через 50ms
+                setTimeout(() => initializeTeamsWithRetry(attempts + 1, maxAttempts), 50);
+            }
+            return;
+        }
+        
+        // Контейнер найден, пытаемся загрузить команды
+        updateTeams();
     }
     
     function toggleScoreFields() {
@@ -497,12 +524,12 @@
             toggleRoundNumber(); // Инициальное состояние
         }
         
-        // Добавляем слушатель на выбор турнира и загружаем команды
+        // Добавляем слушатель на выбор турнира
         const tournamentSelect = document.getElementById('tournament');
         if (tournamentSelect) {
             tournamentSelect.addEventListener('change', updateTeams);
-            // Вызываем updateTeams при загрузке страницы, чтобы загрузить команды для выбранного турнира
-            updateTeams();
+            // Инициализируем команды с повторными попытками (для надежности на сервере)
+            initializeTeamsWithRetry();
         }
         
         // Добавляем слушатели на все поля партий
