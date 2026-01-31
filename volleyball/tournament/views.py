@@ -71,8 +71,8 @@ def calculate_standings(tournament):
                 sets_won += match.sets_a or 0
                 sets_lost += match.sets_b or 0
                 
-                # Подсчет побед и поражений
-                if match.sets_a and match.sets_b:
+                # Подсчет побед и поражений - используем 'is not None' вместо просто переменной
+                if match.sets_a is not None and match.sets_b is not None:
                     if match.sets_a > match.sets_b:
                         won += 1
                     else:
@@ -87,8 +87,8 @@ def calculate_standings(tournament):
                 sets_won += match.sets_b or 0
                 sets_lost += match.sets_a or 0
                 
-                # Подсчет побед и поражений
-                if match.sets_a and match.sets_b:
+                # Подсчет побед и поражений - используем 'is not None' вместо просто переменной
+                if match.sets_a is not None and match.sets_b is not None:
                     if match.sets_b > match.sets_a:
                         won += 1
                     else:
