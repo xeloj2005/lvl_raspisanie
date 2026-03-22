@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import Team, Venue, TournamentGroup, Tournament, Match
+from .models import Team, Venue, TournamentGroup, Tournament, Match, Player, TournamentTeamRoster, TournamentRosterPlayer, Referee, generate_unique_protocol_code
 from .views import check_and_generate_playoff
-
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.urls import reverse
 
 def is_staff(user):
     """Проверка что пользователь - администратор"""
@@ -22,6 +24,12 @@ def admin_dashboard(request):
         'groups_count': TournamentGroup.objects.count(),
         'tournaments_count': Tournament.objects.count(),
         'matches_count': Match.objects.count(),
+        'rosters_count': TournamentTeamRoster.objects.count(),
+        'players_count': Player.objects.count(),
+        'referees_count': Referee.objects.count(),
+        'active_nav': 'dashboard',
+        'back_href': None,
+        'back_title': None,
     }
     return render(request, 'tournament/admin/dashboard.html', context)
 
@@ -49,6 +57,10 @@ def admin_teams_list(request):
         'teams': teams,
         'search': search,
         'gender_filter': gender_filter,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+
     }
     return render(request, 'tournament/admin/teams_list.html', context)
 
@@ -70,8 +82,12 @@ def admin_team_create(request):
             messages.success(request, f'Команда "{name}" успешно создана')
             return redirect('tournament:admin_teams_list')
 
-    return render(request, 'tournament/admin/team_form.html', {'team': None})
-
+    return render(request, 'tournament/admin/team_form.html', {
+        'team': None,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_teams_list'),
+        'back_title': 'Назад к списку команд',
+    })
 
 @login_required
 @user_passes_test(is_staff)
@@ -94,8 +110,12 @@ def admin_team_edit(request, team_id):
             messages.success(request, f'Команда "{name}" успешно обновлена')
             return redirect('tournament:admin_teams_list')
 
-    return render(request, 'tournament/admin/team_form.html', {'team': team})
-
+    return render(request, 'tournament/admin/team_form.html', {
+        'team': team,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_teams_list'),
+        'back_title': 'Назад к списку команд',
+    })
 
 @login_required
 @user_passes_test(is_staff)
@@ -117,6 +137,9 @@ def admin_team_delete(request, team_id):
         'team': team,
         'tournaments_count': tournaments_count,
         'matches_count': matches_count,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_teams_list'),
+        'back_title': 'Назад к списку команд',
     }
     return render(request, 'tournament/admin/team_confirm_delete.html', context)
 
@@ -139,6 +162,9 @@ def admin_venues_list(request):
     context = {
         'venues': venues,
         'search': search,
+        'active_nav': 'venues',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
     }
     return render(request, 'tournament/admin/venues_list.html', context)
 
@@ -158,7 +184,12 @@ def admin_venue_create(request):
             messages.success(request, f'Место "{name}" успешно создано')
             return redirect('tournament:admin_venues_list')
 
-    return render(request, 'tournament/admin/venue_form.html', {'venue': None})
+    return render(request, 'tournament/admin/venue_form.html', {
+        'venue': None,
+        'active_nav': 'venues',
+        'back_href': reverse('tournament:admin_venues_list'),
+        'back_title': 'Назад к списку мест',
+    })
 
 
 @login_required
@@ -180,7 +211,12 @@ def admin_venue_edit(request, venue_id):
             messages.success(request, f'Место "{name}" успешно обновлено')
             return redirect('tournament:admin_venues_list')
 
-    return render(request, 'tournament/admin/venue_form.html', {'venue': venue})
+    return render(request, 'tournament/admin/venue_form.html', {
+        'venue': venue,
+        'active_nav': 'venues',
+        'back_href': reverse('tournament:admin_venues_list'),
+        'back_title': 'Назад к списку мест',
+    })
 
 
 @login_required
@@ -201,6 +237,9 @@ def admin_venue_delete(request, venue_id):
     context = {
         'venue': venue,
         'matches_count': matches_count,
+        'active_nav': 'venues',
+        'back_href': reverse('tournament:admin_venues_list'),
+        'back_title': 'Назад к списку мест',
     }
     return render(request, 'tournament/admin/venue_confirm_delete.html', context)
 
@@ -223,6 +262,9 @@ def admin_groups_list(request):
     context = {
         'groups': groups,
         'search': search,
+        'active_nav': 'groups',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
     }
     return render(request, 'tournament/admin/groups_list.html', context)
 
@@ -247,7 +289,12 @@ def admin_group_create(request):
             messages.success(request, f'Группа "{name}" успешно создана')
             return redirect('tournament:admin_groups_list')
 
-    return render(request, 'tournament/admin/group_form.html', {'group': None})
+    return render(request, 'tournament/admin/group_form.html', {
+        'group': None,
+        'active_nav': 'groups',
+        'back_href': reverse('tournament:admin_groups_list'),
+        'back_title': 'Назад к списку групп',
+    })
 
 
 @login_required
@@ -274,7 +321,12 @@ def admin_group_edit(request, group_id):
             messages.success(request, f'Группа "{name}" успешно обновлена')
             return redirect('tournament:admin_groups_list')
 
-    return render(request, 'tournament/admin/group_form.html', {'group': group})
+    return render(request, 'tournament/admin/group_form.html', {
+        'group': group,
+        'active_nav': 'groups',
+        'back_href': reverse('tournament:admin_groups_list'),
+        'back_title': 'Назад к списку групп',
+    })
 
 
 @login_required
@@ -295,6 +347,9 @@ def admin_group_delete(request, group_id):
     context = {
         'group': group,
         'tournaments_count': tournaments_count,
+        'active_nav': 'groups',
+        'back_href': reverse('tournament:admin_groups_list'),
+        'back_title': 'Назад к списку групп',
     }
     return render(request, 'tournament/admin/group_confirm_delete.html', context)
 
@@ -363,6 +418,9 @@ def admin_tournaments_list(request):
         'search': search,
         'group_filter': group_filter,
         'gender_filter': gender_filter,
+        'active_nav': 'tournaments',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
     }
     return render(request, 'tournament/admin/tournaments_list.html', context)
 
@@ -420,6 +478,9 @@ def admin_tournament_create(request):
         'tournament': None,
         'groups': groups,
         'teams': teams,
+        'active_nav': 'tournaments',
+        'back_href': reverse('tournament:admin_tournaments_list'),
+        'back_title': 'Назад к списку турниров',
     }
     return render(request, 'tournament/admin/tournament_form.html', context)
 
@@ -480,6 +541,9 @@ def admin_tournament_edit(request, tournament_id):
         'groups': groups,
         'teams': teams,
         'selected_teams': tournament.teams.all(),
+        'active_nav': 'tournaments',
+        'back_href': reverse('tournament:admin_tournaments_list'),
+        'back_title': 'Назад к списку турниров',
     }
     return render(request, 'tournament/admin/tournament_form.html', context)
 
@@ -505,6 +569,9 @@ def admin_tournament_delete(request, tournament_id):
     context = {
         'tournament': tournament,
         'matches_count': tournament.matches.count(),
+        'active_nav': 'tournaments',
+        'back_href': reverse('tournament:admin_tournaments_list'),
+        'back_title': 'Назад к списку турниров',
     }
     return render(request, 'tournament/admin/tournament_confirm_delete.html', context)
 
@@ -553,6 +620,9 @@ def admin_matches_list(request):
         'tournament_filter': tournament_filter,
         'stage_filter': stage_filter,
         'finished_filter': finished_filter,
+        'active_nav': 'matches',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
     }
     return render(request, 'tournament/admin/matches_list.html', context)
 
@@ -627,7 +697,8 @@ def admin_match_create(request):
                                     })
                             except (ValueError, TypeError):
                                 pass
-
+                protocol_code = generate_unique_protocol_code(),
+                protocol_code_active = False,
                 match = Match.objects.create(
                     tournament=tournament,
                     team_a=team_a,
@@ -639,6 +710,8 @@ def admin_match_create(request):
                     sets_a=int(sets_a) if sets_a else None,
                     sets_b=int(sets_b) if sets_b else None,
                     set_scores=set_scores if set_scores else None,
+                    protocol_code=generate_unique_protocol_code(),
+                    protocol_code_active=False,
                 )
 
                 if date_str:
@@ -663,6 +736,9 @@ def admin_match_create(request):
         'tournaments': tournaments,
         'venues': venues,
         'stages': stages,
+        'active_nav': 'matches',
+        'back_href': reverse('tournament:admin_matches_list'),
+        'back_title': 'Назад к списку матчей',
     }
     return render(request, 'tournament/admin/match_form.html', context)
 
@@ -763,6 +839,9 @@ def admin_match_edit(request, match_id):
         'tournaments': tournaments,
         'venues': venues,
         'stages': stages,
+        'active_nav': 'matches',
+        'back_href': reverse('tournament:admin_matches_list'),
+        'back_title': 'Назад к списку матчей',
     }
     return render(request, 'tournament/admin/match_form.html', context)
 
@@ -781,5 +860,348 @@ def admin_match_delete(request, match_id):
 
     context = {
         'match': match,
+        'active_nav': 'matches',
+        'back_href': reverse('tournament:admin_matches_list'),
+        'back_title': 'Назад к списку матчей',
     }
     return render(request, 'tournament/admin/match_confirm_delete.html', context)
+
+@login_required
+@user_passes_test(is_staff)
+def players_list(request):
+    search = request.GET.get('search', '').strip()
+
+    players = Player.objects.all().order_by('full_name')
+
+    if search:
+        players = players.filter(
+            Q(full_name__icontains=search) |
+            Q(rank__icontains=search)
+        )
+
+    return render(request, 'tournament/admin/players_list.html', {
+        'players': players,
+        'search': search,
+        'active_nav': 'players',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def player_create(request):
+    if request.method == 'POST':
+        full_name = request.POST.get('full_name', '').strip()
+        birth_date = request.POST.get('birth_date') or None
+        rank = request.POST.get('rank', '').strip()
+
+        if not full_name:
+            messages.error(request, 'Введите ФИО игрока')
+        else:
+            Player.objects.create(
+                full_name=full_name,
+                birth_date=birth_date,
+                rank=rank,
+            )
+            messages.success(request, 'Игрок успешно добавлен')
+            return redirect('tournament:admin_players_list')
+
+    return render(request, 'tournament/admin/player_form.html', {
+        'active_nav': 'players',
+        'back_href': reverse('tournament:admin_players_list'),
+        'back_title': 'Назад к списку игроков',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def player_edit(request, pk):
+    player = get_object_or_404(Player, pk=pk)
+
+    if request.method == 'POST':
+        full_name = request.POST.get('full_name', '').strip()
+        birth_date = request.POST.get('birth_date') or None
+        rank = request.POST.get('rank', '').strip()
+
+        if not full_name:
+            messages.error(request, 'Введите ФИО игрока')
+        else:
+            player.full_name = full_name
+            player.birth_date = birth_date
+            player.rank = rank
+            player.save()
+
+            messages.success(request, 'Данные игрока сохранены')
+            return redirect('tournament:admin_players_list')
+
+    return render(request, 'tournament/admin/player_form.html', {
+        'player': player,
+        'active_nav': 'players',
+        'back_href': reverse('tournament:admin_players_list'),
+        'back_title': 'Назад к списку игроков',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def player_delete(request, pk):
+    player = get_object_or_404(Player, pk=pk)
+
+    if request.method == 'POST':
+        player.delete()
+        messages.success(request, 'Игрок удалён')
+        return redirect('tournament:admin_players_list')
+
+    return render(request, 'tournament/admin/player_confirm_delete.html', {
+        'player': player,
+        'active_nav': 'players',
+        'back_href': reverse('tournament:admin_players_list'),
+        'back_title': 'Назад к списку игроков',
+    })
+
+@login_required
+@user_passes_test(is_staff)
+def rosters_list(request):
+    rosters = TournamentTeamRoster.objects.select_related(
+        'tournament', 'team'
+    ).annotate(
+        players_count=Count('roster_players')
+    ).order_by('tournament__name', 'team__name')
+
+    return render(request, 'tournament/admin/rosters_list.html', {
+        'rosters': rosters,
+        'active_nav': 'rosters',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def roster_create(request):
+    tournaments = Tournament.objects.prefetch_related('teams').order_by('name')
+
+    if request.method == 'POST':
+        tournament_id = request.POST.get('tournament')
+        team_id = request.POST.get('team')
+
+        if not tournament_id:
+            messages.error(request, 'Выберите турнир')
+        elif not team_id:
+            messages.error(request, 'Выберите команду')
+        else:
+            tournament = get_object_or_404(Tournament, pk=tournament_id)
+            team = get_object_or_404(Team, pk=team_id)
+
+            if not tournament.teams.filter(pk=team.pk).exists():
+                messages.error(request, 'Эта команда не добавлена в выбранный турнир')
+            else:
+                roster, created = TournamentTeamRoster.objects.get_or_create(
+                    tournament=tournament,
+                    team=team,
+                )
+
+                if created:
+                    messages.success(request, 'Состав создан')
+                else:
+                    messages.info(request, 'Состав уже существует, открыто редактирование')
+
+                return redirect('tournament:admin_roster_edit', pk=roster.pk)
+
+    return render(request, 'tournament/admin/roster_form.html', {
+        'tournaments': tournaments,
+        'active_nav': 'rosters',
+        'back_href': reverse('tournament:admin_rosters_list'),
+        'back_title': 'Назад к списку составов',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def roster_edit(request, pk):
+    roster = get_object_or_404(
+        TournamentTeamRoster.objects.select_related('tournament', 'team'),
+        pk=pk
+    )
+
+    roster_players = TournamentRosterPlayer.objects.select_related('player').filter(
+        roster=roster
+    ).order_by('player__full_name')
+
+    used_player_ids = TournamentRosterPlayer.objects.filter(
+        roster__tournament=roster.tournament
+    ).exclude(
+        roster=roster
+    ).values_list('player_id', flat=True)
+
+    current_player_ids = roster_players.values_list('player_id', flat=True)
+
+    available_players = Player.objects.exclude(
+        id__in=used_player_ids
+    ).exclude(
+        id__in=current_player_ids
+    ).order_by('full_name')
+
+    return render(request, 'tournament/admin/roster_edit.html', {
+        'roster': roster,
+        'roster_players': roster_players,
+        'available_players': available_players,
+        'active_nav': 'rosters',
+        'back_href': reverse('tournament:admin_rosters_list'),
+        'back_title': 'Назад к списку составов',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def roster_delete(request, pk):
+    roster = get_object_or_404(
+        TournamentTeamRoster.objects.select_related('tournament', 'team'),
+        pk=pk
+    )
+
+    if request.method == 'POST':
+        roster.delete()
+        messages.success(request, 'Состав удалён')
+        return redirect('tournament:admin_rosters_list')
+
+    return render(request, 'tournament/admin/roster_confirm_delete.html', {
+        'roster': roster,
+        'active_nav': 'rosters',
+        'back_href': reverse('tournament:admin_rosters_list'),
+        'back_title': 'Назад к списку составов',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def roster_player_add(request, pk):
+    roster = get_object_or_404(TournamentTeamRoster, pk=pk)
+
+    if request.method == 'POST':
+        player_id = request.POST.get('player')
+
+        if not player_id:
+            messages.error(request, 'Выберите игрока')
+            return redirect('tournament:admin_roster_edit', pk=roster.pk)
+
+        player = get_object_or_404(Player, pk=player_id)
+
+        conflict = TournamentRosterPlayer.objects.filter(
+            roster__tournament=roster.tournament,
+            player=player
+        ).exclude(roster=roster).exists()
+
+        if conflict:
+            messages.error(request, 'Этот игрок уже заявлен за другую команду в данном турнире')
+            return redirect('tournament:admin_roster_edit', pk=roster.pk)
+
+        roster_player, created = TournamentRosterPlayer.objects.get_or_create(
+            roster=roster,
+            player=player,
+        )
+
+        if created:
+            messages.success(request, 'Игрок добавлен в состав')
+        else:
+            messages.info(request, 'Игрок уже находится в этом составе')
+
+    return redirect('tournament:admin_roster_edit', pk=roster.pk)
+
+
+@login_required
+@user_passes_test(is_staff)
+def roster_player_remove(request, roster_pk, player_pk):
+    roster_player = get_object_or_404(
+        TournamentRosterPlayer,
+        roster_id=roster_pk,
+        player_id=player_pk
+    )
+
+    if request.method == 'POST':
+        roster_player.delete()
+        messages.success(request, 'Игрок удалён из состава')
+
+    return redirect('tournament:admin_roster_edit', pk=roster_pk)
+
+@login_required
+@user_passes_test(is_staff)
+def referees_list(request):
+    referees = Referee.objects.select_related('user').order_by('full_name')
+    return render(request, 'tournament/admin/referees_list.html', {
+        'referees': referees,
+        'active_nav': 'referees',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def referee_create(request):
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        full_name = request.POST.get('full_name', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        if not email:
+            messages.error(request, 'Введите email')
+        elif not full_name:
+            messages.error(request, 'Введите ФИО')
+        elif not password:
+            messages.error(request, 'Введите пароль')
+        elif User.objects.filter(username=email).exists():
+            messages.error(request, 'Пользователь с таким email уже существует')
+        else:
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password
+            )
+            Referee.objects.create(
+                user=user,
+                full_name=full_name
+            )
+            messages.success(request, 'Судья успешно создан')
+            return redirect('tournament:admin_referees_list')
+
+    return render(request, 'tournament/admin/referee_form.html', {
+        'active_nav': 'referees',
+        'back_href': reverse('tournament:admin_referees_list'),
+        'back_title': 'Назад к списку судей',
+    })
+
+def referee_login(request):
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'referee_profile'):
+            messages.info(request, 'Раздел судьи будет подключён следующим этапом')
+            return redirect('tournament:admin_login')
+        return redirect('tournament:admin_dashboard')
+
+    if request.method == 'POST':
+        email = request.POST.get('username', '').strip().lower()
+        password = request.POST.get('password', '')
+
+        user = authenticate(request, username=email, password=password)
+
+        if user is None:
+            messages.error(request, 'Неверный логин или пароль')
+        elif not hasattr(user, 'referee_profile'):
+            messages.error(request, 'У пользователя нет прав судьи')
+        elif not user.referee_profile.is_active:
+            messages.error(request, 'Профиль судьи отключён')
+        else:
+            login(request, user)
+            return redirect('tournament:index')
+
+    return render(request, 'tournament/admin/login.html', {
+        'login_title': 'Вход для судьи',
+        'submit_text': 'Войти как судья',
+        'is_referee_login': True,
+    })
+
+@login_required
+def referee_logout(request):
+    logout(request)
+    return redirect('tournament:index')

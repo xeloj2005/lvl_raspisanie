@@ -1,0 +1,53 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Удаление состава{% endblock %}
+{% block header %}Удаление состава{% endblock %}
+
+{% block admin_content %}
+<h2>Удаление состава</h2>
+
+<div style="max-width: 650px; margin-top: 30px; background: #f8f9fa; padding: 30px; border-radius: 12px;">
+    <p style="font-size: 16px; margin-bottom: 12px;">
+        Вы действительно хотите удалить состав?
+    </p>
+
+    <p style="margin-bottom: 8px;"><strong>Турнир:</strong> {{ roster.tournament.name }}</p>
+    <p style="margin-bottom: 25px;"><strong>Команда:</strong> {{ roster.team.name }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button type="submit" class="btn-danger">🗑️ Удалить</button>
+            <a href="{% url 'tournament:admin_rosters_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+</style>
+{% endblock %}

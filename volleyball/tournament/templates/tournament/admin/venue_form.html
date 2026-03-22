@@ -1,19 +1,9 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}{% if venue %}Редактирование места{% else %}Создание места{% endif %}{% endblock %}
 {% block header %}{% if venue %}Редактирование места{% else %}Создание места{% endif %}{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_venues_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block;">
-            ← Назад к списку мест
-        </a>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 <h2>{% if venue %}Редактирование места проведения{% else %}Создание нового места{% endif %}</h2>
 
 {% if messages %}

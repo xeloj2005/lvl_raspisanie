@@ -1,0 +1,143 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Управление составами{% endblock %}
+{% block header %}Управление составами{% endblock %}
+
+{% block admin_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0;">Составы</h2>
+    <a href="{% url 'tournament:admin_roster_create' %}" class="btn-primary">+ Создать состав</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th style="width: 60px;">#</th>
+                <th>Турнир</th>
+                <th>Команда</th>
+                <th style="width: 140px;">Игроков</th>
+                <th style="width: 120px;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for roster in rosters %}
+            <tr class="clickable-row" data-href="{% url 'tournament:admin_roster_edit' roster.id %}">
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td><strong>{{ roster.tournament.name }}</strong></td>
+                <td>{{ roster.team.name }}</td>
+                <td class="text-center">{{ roster.players_count }}</td>
+                <td class="text-center">
+                    <a href="{% url 'tournament:admin_roster_edit' roster.id %}" class="btn-sm btn-edit" onclick="event.stopPropagation()">✏️</a>
+                    <a href="{% url 'tournament:admin_roster_delete' roster.id %}" class="btn-sm btn-delete" onclick="event.stopPropagation()">🗑️</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center" style="padding: 40px; color: #999;">
+                    Нет составов. <a href="{% url 'tournament:admin_roster_create' %}">Создать первый состав</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-primary {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #333;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .admin-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .admin-table thead {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+    }
+
+    .clickable-row {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .clickable-row:hover {
+        background: #f0f4ff !important;
+    }
+
+    .btn-sm {
+        padding: 5px 10px;
+        margin: 0 3px;
+        text-decoration: none;
+        font-size: 16px;
+        display: inline-block;
+        transition: transform 0.2s;
+    }
+
+    .btn-sm:hover {
+        transform: scale(1.2);
+    }
+
+    @media (max-width: 768px) {
+        .admin-table {
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+    }
+</style>
+
+<script>
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+</script>
+{% endblock %}

@@ -1,19 +1,10 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}Удаление матча{% endblock %}
 {% block header %}Удаление матча{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_matches_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
-            ← Назад к списку матчей
-        </a>
-    </div>
-</div>
-{% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div style="max-width: 600px; margin-top: 40px;">
     <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
         <div style="display: flex; align-items: flex-start; gap: 15px;">

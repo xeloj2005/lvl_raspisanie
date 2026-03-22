@@ -1,0 +1,168 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Создание состава{% endblock %}
+{% block header %}Создание состава{% endblock %}
+
+{% block admin_content %}
+<h2>Создание нового состава</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 700px; margin-top: 30px;">
+    <form method="post" class="admin-form">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="tournament">Турнир *</label>
+            <select id="tournament" name="tournament" required>
+                <option value="">Выберите турнир</option>
+                {% for tournament in tournaments %}
+                    <option value="{{ tournament.id }}">
+                        {{ tournament.name }} ({{ tournament.get_gender_display }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="team">Команда *</label>
+            <select id="team" name="team" required>
+                <option value="">Выберите команду</option>
+                {% for tournament in tournaments %}
+                    {% for team in tournament.teams.all %}
+                        <option value="{{ team.id }}" data-tournament="{{ tournament.id }}">
+                            {{ team.name }} ({{ team.get_gender_display }})
+                        </option>
+                    {% endfor %}
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 8px; color: #666;">
+                После выбора турнира останутся только команды этого турнира.
+            </small>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
+            <button type="submit" class="btn-primary">➕ Создать состав</button>
+            <a href="{% url 'tournament:admin_rosters_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .admin-form {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        transition: transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+
+<script>
+    const tournamentSelect = document.getElementById('tournament');
+    const teamSelect = document.getElementById('team');
+    const allOptions = Array.from(teamSelect.querySelectorAll('option')).map(option => option.cloneNode(true));
+
+    function filterTeamsByTournament() {
+        const selectedTournament = tournamentSelect.value;
+        teamSelect.innerHTML = '';
+
+        allOptions.forEach(option => {
+            if (!option.value) {
+                teamSelect.appendChild(option.cloneNode(true));
+                return;
+            }
+
+            if (option.dataset.tournament === selectedTournament) {
+                teamSelect.appendChild(option.cloneNode(true));
+            }
+        });
+    }
+
+    tournamentSelect.addEventListener('change', filterTeamsByTournament);
+</script>
+{% endblock %}

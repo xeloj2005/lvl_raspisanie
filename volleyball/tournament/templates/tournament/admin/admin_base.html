@@ -1,0 +1,20 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}{% block admin_title %}Админ-панель{% endblock %}{% endblock %}
+{% block header %}{% block admin_header %}Админ-панель{% endblock %}{% endblock %}
+
+{% block navigation %}
+    {% include 'tournament/admin/_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% block admin_content %}{% endblock %}
+{% endblock %}

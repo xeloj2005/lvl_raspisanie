@@ -1,32 +1,10 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}Управление группами турниров{% endblock %}
 {% block header %}Управление группами турниров{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_dashboard' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
-            ← Панель администратора
-        </a>
-        
-        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
-            <h3 style="color: #667eea; margin-bottom: 15px; font-size: 16px;">Управление</h3>
-            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link">👥 Команды</a>
-            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link">📍 Места проведения</a>
-            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link current">📁 Группы турниров</a>
-        </div>
 
-        <div style="border-top: 1px solid #e9ecef; margin-top: 20px; padding-top: 20px;">
-            <a href="{% url 'tournament:admin_logout' %}" class="tournament-link" style="color: #dc3545;">
-                🚪 Выйти
-            </a>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
     <h2 style="margin: 0;">Группы турниров</h2>
     <a href="{% url 'tournament:admin_group_create' %}" class="btn-primary">+ Добавить группу</a>

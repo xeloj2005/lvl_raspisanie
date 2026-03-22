@@ -4,28 +4,7 @@
 {% block header %}Панель администратора{% endblock %}
 
 {% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:index' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
-            ← Вернуться на сайт
-        </a>
-        
-        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
-            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
-            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link">👥 Команды</a>
-            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link">📍 Места проведения</a>
-            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link">📁 Группы турниров</a>
-            <a href="{% url 'tournament:admin_tournaments_list' %}" class="tournament-link">🏆 Турниры</a>
-            <a href="{% url 'tournament:admin_matches_list' %}" class="tournament-link">⚽ Матчи</a>
-        </div>
-
-        <div style="border-top: 1px solid #e9ecef; margin-top: 20px; padding-top: 20px;">
-            <a href="{% url 'tournament:admin_logout' %}" class="tournament-link" style="color: #dc3545;">
-                🚪 Выйти
-            </a>
-        </div>
-    </div>
-</div>
+    {% include 'tournament/admin/_sidebar.html' with active_nav='dashboard' %}
 {% endblock %}
 
 {% block content %}
@@ -90,6 +69,30 @@
             <p>Управление матчами</p>
         </div>
     </a>
+    <a href="{% url 'tournament:admin_players_list' %}" style="text-decoration: none;">
+    <div class="admin-card">
+        <div class="admin-card-icon">🏐</div>
+        <h3>Игроки</h3>
+        <div class="admin-card-count">{{ players_count }}</div>
+        <p>Управление игроками</p>
+    </div>
+</a>
+    <a href="{% url 'tournament:admin_rosters_list' %}" style="text-decoration: none;">
+    <div class="admin-card">
+        <div class="admin-card-icon">📋</div>
+        <h3>Составы</h3>
+        <div class="admin-card-count">{{ rosters_count }}</div>
+        <p>Управление составами</p>
+    </div>
+</a>
+    <a href="{% url 'tournament:admin_referees_list' %}" style="text-decoration: none;">
+    <div class="admin-card">
+        <div class="admin-card-icon">🧑‍⚖️</div>
+        <h3>Судьи</h3>
+        <div class="admin-card-count">{{ referees_count }}</div>
+        <p>Управление судьями</p>
+    </div>
+</a>
 </div>
 
 <style>

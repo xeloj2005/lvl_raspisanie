@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройка {{ set_number }}-го сета</title>
+    <style>
+        body { font-family: Inter, Arial, sans-serif; margin: 0; background: #0f172a; color: #0f172a; }
+        .wrap { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .card { width: 100%; max-width: 520px; background: white; border-radius: 24px; padding: 24px; }
+        h1 { margin-top: 0; }
+        .section { margin-bottom: 24px; }
+        .group { display: grid; gap: 10px; }
+        label.option {
+            display: block; padding: 14px; border: 1px solid #cbd5e1; border-radius: 14px; cursor: pointer;
+        }
+        button {
+            width: 100%; height: 52px; border: none; border-radius: 16px;
+            background: #2563eb; color: white; font-weight: 700; font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="card">
+        <h1>Настройка {{ set_number }}-го сета</h1>
+        <p>{{ match.team_a.name }} — {{ match.team_b.name }}</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div>{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="section">
+                <h3>Кто начинает слева?</h3>
+                <div class="group">
+                    <label class="option">
+                        <input type="radio" name="side_a_is_left" value="1" checked>
+                        {{ match.team_a.name }} слева
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="side_a_is_left" value="0">
+                        {{ match.team_b.name }} слева
+                    </label>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Кто подаёт первым?</h3>
+                <div class="group">
+                    <label class="option">
+                        <input type="radio" name="first_server_side" value="A" checked>
+                        {{ match.team_a.name }}
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="first_server_side" value="B">
+                        {{ match.team_b.name }}
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit">Открыть табло</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

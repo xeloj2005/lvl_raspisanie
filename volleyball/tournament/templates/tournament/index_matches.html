@@ -1,14 +1,24 @@
-{% extends 'tournament/admin/admin_base.html' %}
+{% extends 'tournament/base.html' %}
 
-{% block title %}Управление матчами{% endblock %}
-{% block header %}Управление матчами{% endblock %}
+{% block title %}Матчи{% endblock %}
+{% block header %}Матчи{% endblock %}
 
+{% block navigation %}{% endblock %}
 
-
-{% block admin_content %}
+{% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-    <h2 style="margin: 0;">Матчи</h2>
-    <a href="{% url 'tournament:admin_match_create' %}" class="btn-primary">+ Добавить матч</a>
+    <div>
+        <h2 style="margin: 0;">Список матчей</h2>
+        {% if referee %}
+            <div style="margin-top: 6px; color: #666; font-size: 14px;">
+                {{ referee.full_name }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <a href="{% url 'tournament:referee_logout' %}" class="btn-secondary">Выйти</a>
+    </div>
 </div>
 
 {% if messages %}
@@ -19,12 +29,11 @@
     {% endfor %}
 {% endif %}
 
-<!-- Фильтры -->
 <form method="get" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
         <div>
             <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #666;">Поиск</label>
-            <input type="text" name="search" value="{{ search }}" placeholder="Команда/место..." 
+            <input type="text" name="search" value="{{ search }}" placeholder="Команда / место / код..."
                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
         </div>
         <div>
@@ -32,7 +41,9 @@
             <select name="tournament" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                 <option value="">Все</option>
                 {% for tournament in tournaments %}
-                <option value="{{ tournament.id }}" {% if tournament_filter|stringformat:"s" == tournament.id|stringformat:"s" %}selected{% endif %}>{{ tournament.name }}</option>
+                <option value="{{ tournament.id }}" {% if tournament_filter|stringformat:"s" == tournament.id|stringformat:"s" %}selected{% endif %}>
+                    {{ tournament.name }}
+                </option>
                 {% endfor %}
             </select>
         </div>
@@ -56,81 +67,70 @@
         <div>
             <button type="submit" class="btn-primary">Применить</button>
             {% if search or tournament_filter or stage_filter or finished_filter %}
-                <a href="{% url 'tournament:admin_matches_list' %}" class="btn-secondary" style="margin-left: 10px;">Сбросить</a>
+                <a href="{% url 'tournament:index' %}" class="btn-secondary" style="margin-left: 10px;">Сбросить</a>
             {% endif %}
         </div>
     </div>
 </form>
 
-<!-- Таблица матчей -->
 <div class="table-wrapper">
-    <table class="admin-table">
+    <table class="matches-table">
         <thead>
             <tr>
                 <th style="width: 60px;">#</th>
                 <th>Команда А</th>
-                <th style="width: 80px;">vs</th>
+                <th style="width: 70px;">vs</th>
                 <th>Команда Б</th>
                 <th style="width: 100px;">Счет</th>
-                <th style="width: 100px;">Дата/Время</th>
-                <th style="width: 80px;">Место</th>
-                <th style="width: 80px;">Этап</th>
-                <th style="width: 100px;">Статус</th>
-                <th style="width: 120px;">Действия</th>
+                <th style="width: 120px;">Дата/Время</th>
+                <th style="width: 110px;">Место</th>
+                <th style="width: 110px;">Этап</th>
+                <th style="width: 110px;">Код</th>
             </tr>
         </thead>
         <tbody>
             {% for match in matches %}
-            <tr class="clickable-row" data-href="{% url 'tournament:admin_match_edit' match.id %}">
+            <tr>
                 <td class="text-center">{{ forloop.counter }}</td>
                 <td><strong>{{ match.team_a.name }}</strong></td>
                 <td class="text-center">vs</td>
                 <td><strong>{{ match.team_b.name }}</strong></td>
                 <td class="text-center">
-                    {% if match.is_finished %}
-                        <span style="background: #d4edda; padding: 4px 8px; border-radius: 4px; font-weight: 600; color: #155724;">
-                            {{ match.sets_a }}:{{ match.sets_b }}
-                        </span>
+                    {% if match.is_finished and match.sets_a is not None and match.sets_b is not None %}
+                        <span class="score-badge">{{ match.sets_a }}:{{ match.sets_b }}</span>
                     {% else %}
                         <span style="color: #999;">—</span>
                     {% endif %}
                 </td>
-                <td class="text-center" style="font-size: 13px;">
+                <td class="text-center">
                     {% if match.date_time %}
                         {{ match.date_time|date:"d.m.Y H:i" }}
                     {% else %}
                         <span style="color: #999;">Не назначена</span>
                     {% endif %}
                 </td>
-                <td class="text-center" style="font-size: 13px;">
+                <td class="text-center">
                     {% if match.venue %}
                         {{ match.venue.name }}
                     {% else %}
                         <span style="color: #999;">—</span>
                     {% endif %}
                 </td>
-                <td class="text-center" style="font-size: 13px;">
-                    {{ match.get_stage_display }}
+                <td class="text-center">{{ match.get_stage_display }}</td>
+                <td class="text-center" style="font-family: monospace; font-weight: 700;">
+
+                        {{ match.protocol_code }}
+
                 </td>
-                <td class="text-center">
-                    {% if match.is_finished %}
-                        <span class="badge badge-success">✓ Завершен</span>
-                    {% else %}
-                        <span class="badge badge-pending">⏱ Предстоит</span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    <a href="{% url 'tournament:admin_match_edit' match.id %}" class="btn-sm btn-edit" onclick="event.stopPropagation()">✏️</a>
-                    <a href="{% url 'tournament:admin_match_delete' match.id %}" class="btn-sm btn-delete" onclick="event.stopPropagation()">🗑️</a>
-                </td>
+
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="text-center" style="padding: 40px; color: #999;">
+                <td colspan="11" class="text-center" style="padding: 40px; color: #999;">
                     {% if search or tournament_filter or stage_filter or finished_filter %}
                         Матчи не найдены. Попробуйте изменить параметры поиска.
                     {% else %}
-                        Нет матчей. <a href="{% url 'tournament:admin_match_create' %}">Добавить первый матч</a>
+                        Нет доступных матчей.
                     {% endif %}
                 </td>
             </tr>
@@ -143,51 +143,51 @@
     .table-wrapper {
         overflow-x: auto;
     }
-    
-    .admin-table {
+
+    .matches-table {
         width: 100%;
         border-collapse: collapse;
         background: white;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
-    
-    .admin-table thead {
+
+    .matches-table thead {
         background: #667eea;
         color: white;
     }
-    
-    .admin-table th {
-        padding: 15px;
+
+    .matches-table th {
+        padding: 14px;
         text-align: left;
         font-weight: 600;
         font-size: 14px;
     }
-    
-    .admin-table td {
-        padding: 15px;
+
+    .matches-table td {
+        padding: 14px;
         border-bottom: 1px solid #e9ecef;
         font-size: 14px;
     }
-    
-    .admin-table tbody tr:last-child td {
+
+    .matches-table tbody tr:last-child td {
         border-bottom: none;
     }
-    
-    .clickable-row {
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    
-    .clickable-row:hover {
-        background: #f0f4ff !important;
-    }
-    
+
     .text-center {
         text-align: center;
     }
-    
+
+    .score-badge {
+        background: #d4edda;
+        color: #155724;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
     .badge {
         padding: 6px 10px;
         border-radius: 4px;
@@ -195,30 +195,17 @@
         font-weight: 600;
         display: inline-block;
     }
-    
+
     .badge-success {
         background: #d4edda;
         color: #155724;
     }
-    
+
     .badge-pending {
         background: #fff3cd;
         color: #856404;
     }
-    
-    .btn-sm {
-        padding: 5px 10px;
-        margin: 0 3px;
-        text-decoration: none;
-        font-size: 16px;
-        display: inline-block;
-        transition: transform 0.2s;
-    }
-    
-    .btn-sm:hover {
-        transform: scale(1.2);
-    }
-    
+
     .alert {
         padding: 15px;
         margin-bottom: 20px;
@@ -226,19 +213,19 @@
         font-size: 14px;
         font-weight: 500;
     }
-    
+
     .alert-error {
         background: #f8d7da;
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
-    
+
     .alert-success {
         background: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
     }
-    
+
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -250,14 +237,8 @@
         font-weight: 600;
         text-decoration: none;
         display: inline-block;
-        transition: transform 0.2s, box-shadow 0.2s;
     }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-    
+
     .btn-secondary {
         background: #e9ecef;
         color: #333;
@@ -269,47 +250,30 @@
         font-weight: 600;
         text-decoration: none;
         display: inline-block;
-        transition: background 0.2s;
     }
-    
-    .btn-secondary:hover {
-        background: #dee2e6;
-    }
-    
+
     @media (max-width: 1024px) {
-        .admin-table {
-            font-size: 13px;
-        }
-        
-        .admin-table th,
-        .admin-table td {
+        .matches-table th,
+        .matches-table td {
             padding: 12px;
         }
     }
-    
+
     @media (max-width: 768px) {
-        .admin-table {
+        .matches-table {
             font-size: 12px;
         }
-        
-        .admin-table th,
-        .admin-table td {
+
+        .matches-table th,
+        .matches-table td {
             padding: 10px;
         }
-        
-        .btn-primary, .btn-secondary {
+
+        .btn-primary,
+        .btn-secondary {
             padding: 8px 12px;
             font-size: 12px;
         }
     }
 </style>
-
-<script>
-    // Клик по строке таблицы
-    document.querySelectorAll('.clickable-row').forEach(row => {
-        row.addEventListener('click', function() {
-            window.location.href = this.dataset.href;
-        });
-    });
-</script>
 {% endblock %}

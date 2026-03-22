@@ -1,215 +1,322 @@
 from django.core.management.base import BaseCommand
-from tournament.models import Team, Venue, TournamentGroup, Tournament, Match
-from datetime import datetime, timedelta
+from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta, date
+
+from tournament.models import (
+    TournamentGroup,
+    Venue,
+    Team,
+    Player,
+    Tournament,
+    Match,
+    StandingsCache,
+    TournamentTeamRoster,
+    TournamentRosterPlayer,
+)
 
 
 class Command(BaseCommand):
-    help = 'Загружает тестовые данные для двух турниров'
+    help = 'Заполняет базу тестовыми данными: турниры, команды, игроки, составы, матчи'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Очистить существующие тестовые данные перед заполнением'
+        )
+
+    @transaction.atomic
     def handle(self, *args, **options):
-        # Очищаем старые данные (опционально)
-        # Match.objects.all().delete()
-        # Tournament.objects.all().delete()
-        
-        # Создаем площадки
-        venue1, _ = Venue.objects.get_or_create(
-            name='Спорткомплекс "Олимп"',
-            defaults={'address': 'ул. Ленина, 10'}
-        )
-        venue2, _ = Venue.objects.get_or_create(
-            name='Дворец спорта "Динамо"',
-            defaults={'address': 'пр. Октября, 25'}
-        )
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы площадки'))
+        clear = options['clear']
 
-        # Создаем команды (мужские)
-        team_m1, _ = Team.objects.get_or_create(
-            name='Динамо',
-            defaults={'gender': 'M'}
+        if clear:
+            self.stdout.write(self.style.WARNING('Удаление существующих тестовых данных...'))
+            TournamentRosterPlayer.objects.all().delete()
+            TournamentTeamRoster.objects.all().delete()
+            Match.objects.all().delete()
+            StandingsCache.objects.all().delete()
+            Tournament.objects.all().delete()
+            Player.objects.all().delete()
+            Team.objects.all().delete()
+            Venue.objects.all().delete()
+            TournamentGroup.objects.all().delete()
+
+        self.stdout.write('Создание групп турниров...')
+        group_main = TournamentGroup.objects.create(
+            name='Сезон 2026',
+            order=1
         )
-        team_m2, _ = Team.objects.get_or_create(
-            name='Спартак',
-            defaults={'gender': 'M'}
-        )
-        team_m3, _ = Team.objects.get_or_create(
-            name='ЦСКА',
-            defaults={'gender': 'M'}
-        )
-        team_m4, _ = Team.objects.get_or_create(
-            name='Локомотив',
-            defaults={'gender': 'M'}
+        group_youth = TournamentGroup.objects.create(
+            name='Летние турниры 2026',
+            order=2
         )
 
-        # Создаем команды (женские)
-        team_f1, _ = Team.objects.get_or_create(
-            name='Динамо (Ж)',
-            defaults={'gender': 'F'}
+        self.stdout.write('Создание площадок...')
+        venue_1 = Venue.objects.create(
+            name='ФОК Центральный',
+            address='г. Лиепая, ул. Спортивная, 1'
         )
-        team_f2, _ = Team.objects.get_or_create(
-            name='Спартак (Ж)',
-            defaults={'gender': 'F'}
+        venue_2 = Venue.objects.create(
+            name='Школа №7',
+            address='г. Лиепая, ул. Молодёжная, 12'
         )
-        team_f3, _ = Team.objects.get_or_create(
-            name='ЦСКА (Ж)',
-            defaults={'gender': 'F'}
-        )
-        team_f4, _ = Team.objects.get_or_create(
-            name='Локомотив (Ж)',
-            defaults={'gender': 'F'}
-        )
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы команды'))
 
-        # Создаем группы турниров
-        group1, _ = TournamentGroup.objects.get_or_create(
-            name='Зимний чемпионат 2026',
-            defaults={'order': 1}
-        )
-        group2, _ = TournamentGroup.objects.get_or_create(
-            name='Летний кубок 2026',
-            defaults={'order': 2}
-        )
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы группы турниров'))
+        self.stdout.write('Создание команд...')
+        teams = {
+            'meteor': Team.objects.create(name='Метеор', gender='M', coach='Игорь Петров'),
+            'burevestnik': Team.objects.create(name='Буревестник', gender='M', coach='Олег Смирнов'),
+            'fakel': Team.objects.create(name='Факел', gender='M', coach='Андрей Волков'),
+            'dynamo': Team.objects.create(name='Динамо', gender='M', coach='Сергей Кузнецов'),
+            'iskra': Team.objects.create(name='Искра', gender='F', coach='Марина Алексеева'),
+            'volna': Team.objects.create(name='Волна', gender='F', coach='Елена Громова'),
+            'aurora': Team.objects.create(name='Аврора', gender='F', coach='Наталья Белова'),
+            'zvezda': Team.objects.create(name='Звезда', gender='F', coach='Оксана Миронова'),
+        }
 
-        # Создаем турнир 1 - Мужской (с плэйоффом)
-        tournament1, created = Tournament.objects.get_or_create(
-            name='Мужской Чемпионат',
-            group=group1,
-            defaults={
-                'gender': 'M',
-                'tournament_type': 'LEAGUE',
-                'number_of_rounds': 3,
-                'has_playoff': True,
-                'playoff_teams': 4,
-            }
-        )
-        tournament1.teams.set([team_m1, team_m2, team_m3, team_m4])
-        self.stdout.write(self.style.SUCCESS(f'✓ Создан турнир 1: {tournament1.name}'))
-
-        # Создаем турнир 2 - Женский (без плэйофф)
-        tournament2, created = Tournament.objects.get_or_create(
-            name='Женский Чемпионат',
-            group=group2,
-            defaults={
-                'gender': 'F',
-                'tournament_type': 'LEAGUE',
-                'number_of_rounds': 2,
-                'has_playoff': False,
-            }
-        )
-        tournament2.teams.set([team_f1, team_f2, team_f3, team_f4])
-        self.stdout.write(self.style.SUCCESS(f'✓ Создан турнир 2: {tournament2.name}'))
-
-        # Создаем матчи для турнира 1 (мужской) - 3 круга x 6 матчей = 18 матчей
-        base_date = datetime.now()
-        
-        # Регулярный тур - все матчи 3 кругов
-        match_data_m = [
-            # Круг 1
-            (team_m1, team_m2, 1, [(25, 20), (25, 22), (25, 18)]),  # 3:0
-            (team_m1, team_m3, 1, [(25, 22), (23, 25), (25, 20), (25, 24)]),  # 3:1
-            (team_m1, team_m4, 1, [(25, 18), (24, 26), (25, 21), (25, 20)]),  # 3:1
-            (team_m2, team_m3, 1, [(25, 20), (25, 22), (25, 18)]),  # 3:0
-            (team_m2, team_m4, 1, [(20, 25), (22, 25), (19, 25)]),  # 0:3
-            (team_m3, team_m4, 1, [(25, 23), (25, 20), (25, 19)]),  # 3:0
-            
-            # Круг 2
-            (team_m1, team_m2, 2, [(25, 21), (25, 23), (25, 19)]),  # 3:0
-            (team_m1, team_m3, 2, [(23, 25), (25, 20), (25, 22), (25, 21)]),  # 3:1
-            (team_m1, team_m4, 2, [(25, 17), (25, 19), (25, 20)]),  # 3:0
-            (team_m2, team_m3, 2, [(25, 24), (20, 25), (25, 23)]),  # 3:1
-            (team_m2, team_m4, 2, [(21, 25), (23, 25), (20, 25)]),  # 0:3
-            (team_m3, team_m4, 2, [(25, 22), (25, 21), (25, 20)]),  # 3:0
-            
-            # Круг 3
-            (team_m1, team_m2, 3, [(25, 19), (25, 21), (25, 20)]),  # 3:0
-            (team_m1, team_m3, 3, [(25, 20), (25, 19), (25, 21)]),  # 3:0
-            (team_m1, team_m4, 3, [(25, 16), (25, 18), (25, 19)]),  # 3:0
-            (team_m2, team_m3, 3, [(25, 22), (22, 25), (25, 20), (25, 18)]),  # 3:1
-            (team_m2, team_m4, 3, [(19, 25), (21, 25), (18, 25)]),  # 0:3
-            (team_m3, team_m4, 3, [(25, 21), (25, 22), (25, 20)]),  # 3:0
+        self.stdout.write('Создание игроков...')
+        players_data = [
+            ('Иванов Иван Иванович', date(2001, 5, 12), '1 разряд'),
+            ('Петров Пётр Сергеевич', date(2000, 7, 3), 'КМС'),
+            ('Сидоров Алексей Викторович', date(2002, 1, 18), '2 разряд'),
+            ('Кузнецов Дмитрий Олегович', date(1999, 9, 9), '1 разряд'),
+            ('Фёдоров Максим Андреевич', date(2003, 2, 27), '3 разряд'),
+            ('Морозов Артём Игоревич', date(2001, 11, 15), '2 разряд'),
+            ('Соколов Николай Романович', date(1998, 6, 21), 'КМС'),
+            ('Васильев Егор Павлович', date(2004, 8, 30), '1 разряд'),
+            ('Алексеева Мария Игоревна', date(2002, 4, 10), '1 разряд'),
+            ('Смирнова Анна Сергеевна', date(2001, 12, 5), 'КМС'),
+            ('Козлова Виктория Павловна', date(2003, 3, 14), '2 разряд'),
+            ('Новикова Дарья Олеговна', date(2000, 10, 1), '1 разряд'),
+            ('Павлова Екатерина Денисовна', date(1999, 6, 25), 'КМС'),
+            ('Орлова София Андреевна', date(2004, 7, 11), '3 разряд'),
+            ('Михайлова Полина Викторовна', date(2002, 9, 2), '2 разряд'),
+            ('Белова Алина Романовна', date(2001, 1, 19), '1 разряд'),
+            ('Григорьев Роман Павлович', date(2000, 2, 11), '1 разряд'),
+            ('Ершов Кирилл Максимович', date(2003, 5, 6), '2 разряд'),
+            ('Титов Владислав Игоревич', date(2001, 8, 17), 'КМС'),
+            ('Николаев Степан Олегович', date(2004, 11, 29), '3 разряд'),
+            ('Жукова Кристина Сергеевна', date(2000, 4, 28), '1 разряд'),
+            ('Лебедева Юлия Андреевна', date(2002, 6, 8), '2 разряд'),
+            ('Семенова Арина Павловна', date(2003, 9, 13), '1 разряд'),
+            ('Гусева Валерия Игоревна', date(2001, 12, 22), 'КМС'),
         ]
 
-        for team_a, team_b, round_num, scores in match_data_m:
-            sets_a = sum(1 for a, b in scores if a > b)
-            sets_b = sum(1 for a, b in scores if b > a)
-            
-            match, _ = Match.objects.get_or_create(
-                tournament=tournament1,
-                team_a=team_a,
-                team_b=team_b,
-                stage='REGULAR',
-                round_number=round_num,
+        players = []
+        for full_name, birth_date, rank in players_data:
+            players.append(
+                Player.objects.create(
+                    full_name=full_name,
+                    birth_date=birth_date,
+                    rank=rank
+                )
+            )
+
+        self.stdout.write('Создание турниров...')
+        tournament_m = Tournament.objects.create(
+            name='Мужская лига весна 2026',
+            group=group_main,
+            gender='M',
+            tournament_type='LEAGUE',
+            number_of_rounds=1,
+            has_playoff=False,
+            order=1
+        )
+        tournament_f = Tournament.objects.create(
+            name='Женский кубок лета 2026',
+            group=group_youth,
+            gender='F',
+            tournament_type='LEAGUE',
+            number_of_rounds=1,
+            has_playoff=False,
+            order=2
+        )
+
+        tournament_m.teams.add(
+            teams['meteor'],
+            teams['burevestnik'],
+            teams['fakel'],
+            teams['dynamo'],
+        )
+        tournament_f.teams.add(
+            teams['iskra'],
+            teams['volna'],
+            teams['aurora'],
+            teams['zvezda'],
+        )
+
+        self.stdout.write('Создание составов на турниры...')
+
+        # Мужской турнир
+        roster_meteor = TournamentTeamRoster.objects.create(
+            tournament=tournament_m,
+            team=teams['meteor']
+        )
+        roster_burevestnik = TournamentTeamRoster.objects.create(
+            tournament=tournament_m,
+            team=teams['burevestnik']
+        )
+        roster_fakel = TournamentTeamRoster.objects.create(
+            tournament=tournament_m,
+            team=teams['fakel']
+        )
+        roster_dynamo = TournamentTeamRoster.objects.create(
+            tournament=tournament_m,
+            team=teams['dynamo']
+        )
+
+        # Женский турнир
+        roster_iskra = TournamentTeamRoster.objects.create(
+            tournament=tournament_f,
+            team=teams['iskra']
+        )
+        roster_volna = TournamentTeamRoster.objects.create(
+            tournament=tournament_f,
+            team=teams['volna']
+        )
+        roster_aurora = TournamentTeamRoster.objects.create(
+            tournament=tournament_f,
+            team=teams['aurora']
+        )
+        roster_zvezda = TournamentTeamRoster.objects.create(
+            tournament=tournament_f,
+            team=teams['zvezda']
+        )
+
+        # Назначаем игроков в составы
+        # Мужчины: players[0:12] + [16:20]
+        men_players = players[0:8] + players[16:20]
+        women_players = players[8:16] + players[20:24]
+
+        roster_map_m = {
+            roster_meteor: men_players[0:3],
+            roster_burevestnik: men_players[3:6],
+            roster_fakel: men_players[6:8],
+            roster_dynamo: men_players[8:12],
+        }
+
+        roster_map_f = {
+            roster_iskra: women_players[0:3],
+            roster_volna: women_players[3:6],
+            roster_aurora: women_players[6:8],
+            roster_zvezda: women_players[8:12],
+        }
+
+        # Чтобы было не слишком пусто, добросим ещё по игроку в команды с 2 игроками
+        extra_assignments = [
+            (roster_fakel, men_players[12 - 1] if len(men_players) >= 12 else men_players[-1]),
+            (roster_aurora, women_players[12 - 1] if len(women_players) >= 12 else women_players[-1]),
+        ]
+
+        for roster, roster_players in roster_map_m.items():
+            for player in roster_players:
+                TournamentRosterPlayer.objects.get_or_create(
+                    roster=roster,
+                    player=player
+                )
+
+        for roster, roster_players in roster_map_f.items():
+            for player in roster_players:
+                TournamentRosterPlayer.objects.get_or_create(
+                    roster=roster,
+                    player=player
+                )
+
+        # Без дублирования внутри турнира
+        for roster, player in extra_assignments:
+            if not TournamentRosterPlayer.objects.filter(
+                roster__tournament=roster.tournament,
+                player=player
+            ).exists():
+                TournamentRosterPlayer.objects.create(
+                    roster=roster,
+                    player=player
+                )
+
+        self.stdout.write('Создание матчей...')
+        now = timezone.now()
+
+        Match.objects.create(
+            tournament=tournament_m,
+            team_a=teams['meteor'],
+            team_b=teams['burevestnik'],
+            venue=venue_1,
+            date_time=now + timedelta(days=1),
+            stage='REGULAR',
+            round_number=1,
+            sets_a=3,
+            sets_b=1,
+            set_scores=[{'a': 25, 'b': 20}, {'a': 23, 'b': 25}, {'a': 25, 'b': 19}, {'a': 25, 'b': 21}],
+            is_finished=True,
+        )
+        Match.objects.create(
+            tournament=tournament_m,
+            team_a=teams['fakel'],
+            team_b=teams['dynamo'],
+            venue=venue_2,
+            date_time=now + timedelta(days=2),
+            stage='REGULAR',
+            round_number=1,
+            sets_a=2,
+            sets_b=3,
+            set_scores=[{'a': 21, 'b': 25}, {'a': 25, 'b': 22}, {'a': 25, 'b': 19}, {'a': 20, 'b': 25}, {'a': 12, 'b': 15}],
+            is_finished=True,
+        )
+        Match.objects.create(
+            tournament=tournament_f,
+            team_a=teams['iskra'],
+            team_b=teams['volna'],
+            venue=venue_1,
+            date_time=now + timedelta(days=3),
+            stage='REGULAR',
+            round_number=1,
+            sets_a=3,
+            sets_b=0,
+            set_scores=[{'a': 25, 'b': 17}, {'a': 25, 'b': 22}, {'a': 25, 'b': 18}],
+            is_finished=True,
+        )
+        Match.objects.create(
+            tournament=tournament_f,
+            team_a=teams['aurora'],
+            team_b=teams['zvezda'],
+            venue=venue_2,
+            date_time=now + timedelta(days=4),
+            stage='REGULAR',
+            round_number=1,
+            sets_a=None,
+            sets_b=None,
+            set_scores=[],
+            is_finished=False,
+        )
+
+        self.stdout.write('Создание базового кеша таблицы...')
+        for team in tournament_m.teams.all():
+            StandingsCache.objects.get_or_create(
+                tournament=tournament_m,
+                team=team,
                 defaults={
-                    'venue': venue1,
-                    'date_time': base_date + timedelta(days=round_num),
-                    'is_finished': True,
-                    'sets_a': sets_a,
-                    'sets_b': sets_b,
-                    'set_scores': [{'a': a, 'b': b} for a, b in scores],
+                    'played': 0,
+                    'won': 0,
+                    'lost': 0,
+                    'sets_won': 0,
+                    'sets_lost': 0,
+                    'points': 0,
                 }
             )
 
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы все {len(match_data_m)} матчей регулярного тура турнира 1'))
-
-        # Создаем матчи для турнира 2 (женский)
-        match_data_f = [
-            (team_f1, team_f2, 1, [(25, 20), (25, 22), (25, 18)]),  # 3:0
-            (team_f3, team_f4, 1, [(22, 25), (20, 25), (19, 25)]),  # 0:3
-            (team_f1, team_f3, 2, [(25, 23), (25, 20), (25, 19)]),  # 3:0
-            (team_f2, team_f4, 2, [(25, 22), (24, 26), (25, 23)]),  # 3:1
-        ]
-
-        for team_a, team_b, round_num, scores in match_data_f:
-            match, _ = Match.objects.get_or_create(
-                tournament=tournament2,
-                team_a=team_a,
-                team_b=team_b,
-                stage='REGULAR',
-                round_number=round_num,
+        for team in tournament_f.teams.all():
+            StandingsCache.objects.get_or_create(
+                tournament=tournament_f,
+                team=team,
                 defaults={
-                    'venue': venue2,
-                    'date_time': base_date + timedelta(days=round_num),
-                    'is_finished': True,
-                    'sets_a': sum(1 for a, b in scores if a > b),
-                    'sets_b': sum(1 for a, b in scores if b > a),
-                    'set_scores': [{'a': a, 'b': b} for a, b in scores],
+                    'played': 0,
+                    'won': 0,
+                    'lost': 0,
+                    'sets_won': 0,
+                    'sets_lost': 0,
+                    'points': 0,
                 }
             )
 
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы матчи регулярного тура турнира 2'))
-
-        # Добавляем матчи плэйофф для турнира 1
-        playoff_matches = [
-            ('QUARTER', None, team_m1, team_m4, [(25, 20), (25, 22), (25, 18)]),
-            ('QUARTER', None, team_m2, team_m3, [(22, 25), (20, 25), (19, 25)]),
-            ('SEMI', None, team_m1, team_m3, [(25, 23), (25, 20), (25, 19)]),
-            ('SEMI', None, team_m2, team_m4, [(25, 22), (24, 26), (25, 23)]),
-            ('FINAL', None, team_m1, team_m2, [(25, 20), (25, 22), (25, 18)]),
-            ('THIRD', None, team_m3, team_m4, [(20, 25), (22, 25), (19, 25)]),
-        ]
-
-        for stage, round_num, team_a, team_b, scores in playoff_matches:
-            match, _ = Match.objects.get_or_create(
-                tournament=tournament1,
-                team_a=team_a,
-                team_b=team_b,
-                stage=stage,
-                round_number=round_num,
-                defaults={
-                    'venue': venue1,
-                    'date_time': base_date + timedelta(days=10),
-                    'is_finished': True,
-                    'sets_a': sum(1 for a, b in scores if a > b),
-                    'sets_b': sum(1 for a, b in scores if b > a),
-                    'set_scores': [{'a': a, 'b': b} for a, b in scores],
-                }
-            )
-
-        self.stdout.write(self.style.SUCCESS(f'✓ Созданы матчи плэйофф турнира 1'))
-
-        self.stdout.write(self.style.SUCCESS('\n✅ Тестовые данные успешно загружены!'))
-        self.stdout.write(f'\n📊 Статистика:')
-        self.stdout.write(f'  • Команд: {Team.objects.count()}')
-        self.stdout.write(f'  • Площадок: {Venue.objects.count()}')
-        self.stdout.write(f'  • Турниров: {Tournament.objects.count()}')
-        self.stdout.write(f'  • Матчей: {Match.objects.count()}')
+        self.stdout.write(self.style.SUCCESS('Тестовые данные успешно созданы'))
+        self.stdout.write(self.style.SUCCESS('Создано: 2 турнира, 8 команд, 24 игрока, составы и матчи'))

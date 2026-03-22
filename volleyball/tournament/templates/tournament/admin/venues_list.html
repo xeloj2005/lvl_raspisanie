@@ -1,26 +1,9 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}Управление местами проведения{% endblock %}
 {% block header %}Управление местами проведения{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_dashboard' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
-            ← Панель администратора
-        </a>
-        
-        <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
-            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
-            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link">👥 Команды</a>
-            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link current">📍 Места проведения</a>
-            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link">📁 Группы турниров</a>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
     <h2 style="margin: 0;">Места проведения</h2>
     <a href="{% url 'tournament:admin_venue_create' %}" class="btn-primary">+ Добавить место</a>

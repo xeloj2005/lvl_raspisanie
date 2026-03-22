@@ -1,19 +1,11 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}{% if group %}Редактирование группы{% else %}Создание группы{% endif %}{% endblock %}
 {% block header %}{% if group %}Редактирование группы{% else %}Создание группы{% endif %}{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_groups_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
-            ← Назад к списку групп
-        </a>
-    </div>
-</div>
-{% endblock %}
 
-{% block content %}
+
+{% block admin_content %}
 <h2>{% if group %}Редактирование группы турниров{% else %}Создание новой группы{% endif %}</h2>
 
 {% if messages %}

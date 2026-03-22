@@ -1,19 +1,11 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}{% if match %}Редактирование матча{% else %}Создание матча{% endif %}{% endblock %}
 {% block header %}{% if match %}Редактирование матча{% else %}Создание матча{% endif %}{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_matches_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
-            ← Назад к списку матчей
-        </a>
-    </div>
-</div>
-{% endblock %}
 
-{% block content %}
+
+{% block admin_content %}
 <h2>{% if match %}Редактирование матча{% else %}Создание нового матча{% endif %}</h2>
 
 {% if messages %}

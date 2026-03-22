@@ -1,19 +1,9 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}Удаление места{% endblock %}
 {% block header %}Удаление места{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_venues_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
-            ← Назад к списку мест
-        </a>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 <div style="max-width: 600px;">
     <div class="delete-warning">
         <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>

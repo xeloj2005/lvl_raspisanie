@@ -1,0 +1,41 @@
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        {% if back_href %}
+            <a href="{{ back_href }}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+                ← {{ back_title|default:"Назад" }}
+            </a>
+        {% endif %}
+
+        <div {% if back_href %}style="border-top: 1px solid #e9ecef; padding-top: 20px;"{% endif %}>
+            <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 16px;">Управление</h3>
+
+            <a href="{% url 'tournament:admin_dashboard' %}" class="tournament-link {% if active_nav == 'dashboard' %}current{% endif %}">
+                🏠 Панель
+            </a>
+            <a href="{% url 'tournament:admin_teams_list' %}" class="tournament-link {% if active_nav == 'teams' %}current{% endif %}">
+                👥 Команды
+            </a>
+            <a href="{% url 'tournament:admin_players_list' %}" class="tournament-link {% if active_nav == 'players' %}current{% endif %}">
+                🏐 Игроки
+            </a>
+            <a href="{% url 'tournament:admin_rosters_list' %}" class="tournament-link {% if active_nav == 'rosters' %}current{% endif %}">
+                📋 Составы
+            </a>
+            <a href="{% url 'tournament:admin_referees_list' %}" class="tournament-link {% if active_nav == 'referees' %}current{% endif %}">
+                🧑‍⚖️ Судьи
+            </a>
+            <a href="{% url 'tournament:admin_venues_list' %}" class="tournament-link {% if active_nav == 'venues' %}current{% endif %}">
+                📍 Места проведения
+            </a>
+            <a href="{% url 'tournament:admin_groups_list' %}" class="tournament-link {% if active_nav == 'groups' %}current{% endif %}">
+                📁 Группы турниров
+            </a>
+            <a href="{% url 'tournament:admin_tournaments_list' %}" class="tournament-link {% if active_nav == 'tournaments' %}current{% endif %}">
+                🏆 Турниры
+            </a>
+            <a href="{% url 'tournament:admin_matches_list' %}" class="tournament-link {% if active_nav == 'matches' %}current{% endif %}">
+                ⚽ Матчи
+            </a>
+        </div>
+    </div>
+</div>

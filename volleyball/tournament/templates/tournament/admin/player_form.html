@@ -1,10 +1,10 @@
 {% extends 'tournament/admin/admin_base.html' %}
 
-{% block title %}{% if team %}Редактирование команды{% else %}Создание команды{% endif %}{% endblock %}
-{% block header %}{% if team %}Редактирование команды{% else %}Создание команды{% endif %}{% endblock %}
+{% block title %}{% if player %}Редактирование игрока{% else %}Создание игрока{% endif %}{% endblock %}
+{% block header %}{% if player %}Редактирование игрока{% else %}Создание игрока{% endif %}{% endblock %}
 
 {% block admin_content %}
-<h2>{% if team %}Редактирование команды{% else %}Создание новой команды{% endif %}</h2>
+<h2>{% if player %}Редактирование игрока{% else %}Создание нового игрока{% endif %}</h2>
 
 {% if messages %}
     {% for message in messages %}
@@ -17,31 +17,32 @@
 <div style="max-width: 600px; margin-top: 30px;">
     <form method="post" class="admin-form">
         {% csrf_token %}
-        
+
         <div class="form-group">
-            <label for="name">Название команды *</label>
-            <input type="text" id="name" name="name" value="{% if team %}{{ team.name }}{% endif %}" 
-                   required maxlength="200" placeholder="Введите название команды">
+            <label for="full_name">ФИО игрока *</label>
+            <input type="text" id="full_name" name="full_name"
+                   value="{% if player %}{{ player.full_name }}{% endif %}"
+                   required maxlength="255" placeholder="Введите ФИО игрока">
         </div>
-        
+
         <div class="form-group">
-            <label for="gender">Пол команды *</label>
-            <select id="gender" name="gender" required>
-                <option value="">Выберите пол</option>
-                <option value="M" {% if team and team.gender == 'M' %}selected{% endif %}>Мужская</option>
-                <option value="F" {% if team and team.gender == 'F' %}selected{% endif %}>Женская</option>
-            </select>
+            <label for="birth_date">Дата рождения</label>
+            <input type="date" id="birth_date" name="birth_date"
+                   value="{% if player and player.birth_date %}{{ player.birth_date|date:'Y-m-d' }}{% endif %}">
         </div>
+
         <div class="form-group">
-    <label for="coach">Тренер</label>
-    <input type="text" id="coach" name="coach" value="{% if team %}{{ team.coach }}{% endif %}"
-           maxlength="200" placeholder="Введите имя тренера">
-</div>
-        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <label for="rank">Разряд</label>
+            <input type="text" id="rank" name="rank"
+                   value="{% if player %}{{ player.rank }}{% endif %}"
+                   maxlength="100" placeholder="Например: 1 разряд, КМС, МС">
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
             <button type="submit" class="btn-primary">
-                {% if team %}💾 Сохранить изменения{% else %}➕ Создать команду{% endif %}
+                {% if player %}💾 Сохранить изменения{% else %}➕ Создать игрока{% endif %}
             </button>
-            <a href="{% url 'tournament:admin_teams_list' %}" class="btn-secondary">Отмена</a>
+            <a href="{% url 'tournament:admin_players_list' %}" class="btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
@@ -52,11 +53,11 @@
         padding: 30px;
         border-radius: 12px;
     }
-    
+
     .form-group {
         margin-bottom: 25px;
     }
-    
+
     .form-group label {
         display: block;
         margin-bottom: 8px;
@@ -64,7 +65,7 @@
         color: #333;
         font-size: 15px;
     }
-    
+
     .form-group input,
     .form-group select,
     .form-group textarea {
@@ -75,20 +76,16 @@
         font-size: 15px;
         transition: border-color 0.2s;
         font-family: inherit;
+        box-sizing: border-box;
     }
-    
+
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
         outline: none;
         border-color: #667eea;
     }
-    
-    .form-group textarea {
-        resize: vertical;
-        min-height: 100px;
-    }
-    
+
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -102,11 +99,11 @@
         font-size: 15px;
         transition: transform 0.2s;
     }
-    
+
     .btn-primary:hover {
         transform: translateY(-2px);
     }
-    
+
     .btn-secondary {
         background: #6c757d;
         color: white;
@@ -119,20 +116,20 @@
         cursor: pointer;
         font-size: 15px;
     }
-    
+
     .alert {
         padding: 15px 20px;
         margin-bottom: 20px;
         border-radius: 8px;
         font-weight: 500;
     }
-    
+
     .alert-success {
         background: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
     }
-    
+
     .alert-error {
         background: #f8d7da;
         color: #721c24;

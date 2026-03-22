@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Итог матча</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --card: #1f2937;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --red: #dc2626;
+            --blue: #2563eb;
+            --line: rgba(255,255,255,.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Inter, Arial, sans-serif;
+            background: linear-gradient(160deg, #0f172a, #111827);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #111827, #1f2937);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 22px;
+        }
+
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .hero-title {
+            font-size: 34px;
+            font-weight: 900;
+            margin: 0 0 8px;
+        }
+
+        .hero-subtitle {
+            color: var(--muted);
+            font-size: 15px;
+            margin: 0;
+        }
+
+        .exit-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 110px;
+            height: 46px;
+            padding: 0 16px;
+            border-radius: 14px;
+            background: #334155;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 800;
+            border: 1px solid rgba(255,255,255,.08);
+        }
+
+        .hero-score {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-radius: 18px;
+            background: #0b1220;
+            font-size: 30px;
+            font-weight: 900;
+        }
+
+        .sets-grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        .set-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            overflow: hidden;
+        }
+
+        .set-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border-bottom: 1px solid var(--line);
+        }
+
+        .set-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .set-meta {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .set-score {
+            font-size: 28px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .set-body {
+            padding: 18px 20px 22px;
+        }
+
+        .meta-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .pill {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .block {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .block h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .item {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,.02);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .side-a {
+            color: #fca5a5;
+            font-weight: 800;
+        }
+
+        .side-b {
+            color: #93c5fd;
+            font-weight: 800;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .set-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .set-score {
+                font-size: 24px;
+            }
+
+            .hero-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="hero">
+        <div class="hero-top">
+            <div>
+                <h1 class="hero-title">{{ match.team_a.name }} — {{ match.team_b.name }}</h1>
+                <p class="hero-subtitle">
+                    Итоговый протокол матча · Турнир: {{ match.tournament.name }}
+                </p>
+            </div>
+
+            <a href="/" class="exit-btn">Выход</a>
+        </div>
+
+        <div class="hero-score">
+            <span>{{ sets_a }}</span>
+            <span>:</span>
+            <span>{{ sets_b }}</span>
+        </div>
+    </div>
+
+    <div class="sets-grid">
+        {% for set_data in sets %}
+            <div class="set-card">
+                <div class="set-head">
+                    <div>
+                        <h2 class="set-title">Сет {{ set_data.set_number }}</h2>
+                        <div class="set-meta">
+                            Победитель:
+                            {% if set_data.winner_side == "A" %}
+                                <span class="side-a">{{ match.team_a.name }}</span>
+                            {% else %}
+                                <span class="side-b">{{ match.team_b.name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="set-score">
+                        {{ set_data.score_a }} : {{ set_data.score_b }}
+                    </div>
+                </div>
+
+                <div class="set-body">
+                    <div class="meta-pills">
+                        <div class="pill">
+                            Первая подача:
+                            {% if set_data.first_server_side == "A" %}
+                                {{ match.team_a.name }}
+                            {% else %}
+                                {{ match.team_b.name }}
+                            {% endif %}
+                        </div>
+
+                        <div class="pill">
+                            Слева стартовала:
+                            {% if set_data.side_a_is_left %}
+                                {{ match.team_a.name }}
+                            {% else %}
+                                {{ match.team_b.name }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="block">
+                            <h3>Порядок набора очков</h3>
+                            <div class="list">
+                                {% for item in set_data.point_history %}
+                                    <div class="item">
+                                        <strong>#{{ item.sequence }}</strong> ·
+                                        {% if item.side == "A" %}
+                                            <span class="side-a">{{ match.team_a.name }}</span>
+                                        {% else %}
+                                            <span class="side-b">{{ match.team_b.name }}</span>
+                                        {% endif %}
+                                        · счёт {{ item.score_a }}:{{ item.score_b }}
+                                        <br>
+                                        На подаче: команда {{ item.server_side }}, №{{ item.server_number }}
+                                    </div>
+                                {% empty %}
+                                    <div class="empty">Очков не зафиксировано.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="block">
+                            <h3>Тайм-ауты</h3>
+                            <div class="list">
+                                {% for item in set_data.timeout_history %}
+                                    <div class="item">
+                                        <strong>#{{ item.sequence }}</strong> ·
+                                        {% if item.side == "A" %}
+                                            <span class="side-a">{{ match.team_a.name }}</span>
+                                        {% else %}
+                                            <span class="side-b">{{ match.team_b.name }}</span>
+                                        {% endif %}
+                                        <br>
+                                        При счёте {{ item.score_a }}:{{ item.score_b }}
+                                    </div>
+                                {% empty %}
+                                    <div class="empty">Тайм-аутов не было.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="block">
+                            <h3>Замены</h3>
+                            <div class="list">
+                                {% for item in set_data.substitution_history %}
+                                    <div class="item">
+                                        <strong>#{{ item.sequence }}</strong> ·
+                                        {% if item.side == "A" %}
+                                            <span class="side-a">{{ match.team_a.name }}</span>
+                                        {% else %}
+                                            <span class="side-b">{{ match.team_b.name }}</span>
+                                        {% endif %}
+                                        <br>
+                                        {{ item.out_number }} → {{ item.in_number }}
+                                        <br>
+                                        При счёте {{ item.score_a }}:{{ item.score_b }}
+                                    </div>
+                                {% empty %}
+                                    <div class="empty">Замен не было.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="set-card">
+                <div class="set-body">
+                    Матч ещё не содержит завершённых сетов.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>

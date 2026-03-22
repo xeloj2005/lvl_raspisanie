@@ -1,11 +1,54 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Count, Sum, Case, When, IntegerField
 from .models import TournamentGroup, Tournament, Match, Team
 from collections import defaultdict
-
+from django.contrib import messages
 
 def index(request):
-    """Главная страница со списком групп турниров"""
+    if request.user.is_authenticated and hasattr(request.user, 'referee_profile'):
+        referee = request.user.referee_profile
+
+        search = request.GET.get('search', '').strip()
+        tournament_filter = request.GET.get('tournament', '')
+        stage_filter = request.GET.get('stage', '')
+        finished_filter = request.GET.get('finished', '')
+
+        matches = Match.objects.select_related(
+            'tournament', 'team_a', 'team_b', 'venue'
+        ).filter(is_finished=False).order_by('date_time', 'id')
+
+        if search:
+            matches = matches.filter(
+                Q(team_a__name__icontains=search) |
+                Q(team_b__name__icontains=search) |
+                Q(venue__name__icontains=search) |
+                Q(protocol_code__icontains=search)
+            )
+
+        if tournament_filter:
+            matches = matches.filter(tournament_id=tournament_filter)
+
+        if stage_filter:
+            matches = matches.filter(stage=stage_filter)
+
+        if finished_filter == 'finished':
+            matches = matches.filter(is_finished=True)
+        elif finished_filter == 'not_finished':
+            matches = matches.filter(is_finished=False)
+
+        tournaments = Tournament.objects.order_by('name')
+        stages = Match.STAGE_CHOICES
+
+        return render(request, 'tournament/index_matches.html', {
+            'matches': matches,
+            'tournaments': tournaments,
+            'stages': stages,
+            'search': search,
+            'tournament_filter': tournament_filter,
+            'stage_filter': stage_filter,
+            'finished_filter': finished_filter,
+            'referee': referee,
+        })
     groups = TournamentGroup.objects.prefetch_related('tournaments').all()
     return render(request, 'tournament/index.html', {'groups': groups})
 
@@ -332,3 +375,28 @@ def get_playoff_matches(tournament):
             result.append((stage_name, list(matches)))
     
     return result
+
+def protocol_code_entry(request):
+    if request.method == 'POST':
+        code = request.POST.get('code', '').strip()
+
+        if not code:
+            messages.error(request, 'Введите код матча')
+            return render(request, 'tournament/code_entry.html', {
+                'code': code,
+            })
+
+        match = Match.objects.filter(
+            protocol_code=code,
+        ).first()
+
+        if not match:
+            messages.error(request, 'Матч с таким кодом не найден или код не активен')
+            return render(request, 'tournament/code_entry.html', {
+                'code': code,
+            })
+
+        return redirect('match_protocol:squad_step', match_id=match.id,side="A")
+
+    return render(request, 'tournament/code_entry.html')
+

@@ -1,0 +1,52 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Удаление игрока{% endblock %}
+{% block header %}Удаление игрока{% endblock %}
+
+
+
+{% block admin_content %}
+<h2>Удаление игрока</h2>
+
+<div style="max-width: 600px; margin-top: 30px; background: #f8f9fa; padding: 30px; border-radius: 12px;">
+    <p style="font-size: 16px; margin-bottom: 25px;">
+        Вы действительно хотите удалить игрока <strong>{{ player.full_name }}</strong>?
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button type="submit" class="btn-danger">🗑️ Удалить</button>
+            <a href="{% url 'tournament:admin_players_list' %}" class="btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+</style>
+{% endblock %}

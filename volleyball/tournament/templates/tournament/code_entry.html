@@ -1,0 +1,122 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Ввод кода матча{% endblock %}
+{% block header %}Электронный протокол{% endblock %}
+
+{% block navigation %}
+<div class="nav-groups">
+    <div style="padding: 20px;">
+        <a href="{% url 'tournament:index' %}" style="color: #87CEEB; text-decoration: none; font-weight: 500; display: block; margin-bottom: 20px;">
+            ← На главную
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2>Ввод кода матча</h2>
+<p style="color: #666; margin-bottom: 25px;">
+    Введите 8-значный код, чтобы открыть электронный протокол матча.
+</p>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div style="max-width: 500px; margin-top: 30px;">
+    <form method="post" class="protocol-form">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="code">Код матча</label>
+            <input
+                type="text"
+                id="code"
+                name="code"
+                maxlength="8"
+                inputmode="numeric"
+                pattern="[0-9]{8}"
+                value="{{ code|default:'' }}"
+                placeholder="Например: 01234567"
+                required
+            >
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 25px; flex-wrap: wrap;">
+            <button type="submit" class="btn-primary">Далее</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .protocol-form {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 20px;
+        letter-spacing: 2px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 26px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}

@@ -1,19 +1,9 @@
-{% extends 'tournament/base.html' %}
+{% extends 'tournament/admin/admin_base.html' %}
 
 {% block title %}Удаление команды{% endblock %}
 {% block header %}Удаление команды{% endblock %}
 
-{% block navigation %}
-<div class="nav-groups">
-    <div style="padding: 20px;">
-        <a href="{% url 'tournament:admin_teams_list' %}" style="color: #667eea; text-decoration: none; font-weight: 500; display: block;">
-            ← Назад к списку команд
-        </a>
-    </div>
-</div>
-{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 <div style="max-width: 600px;">
     <div class="delete-warning">
         <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>

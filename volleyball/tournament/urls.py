@@ -44,4 +44,22 @@ urlpatterns = [
     path('admin-panel/matches/create/', admin_views.admin_match_create, name='admin_match_create'),
     path('admin-panel/matches/<int:match_id>/edit/', admin_views.admin_match_edit, name='admin_match_edit'),
     path('admin-panel/matches/<int:match_id>/delete/', admin_views.admin_match_delete, name='admin_match_delete'),
+    path('admin-panel/players/', admin_views.players_list, name='admin_players_list'),
+    path('admin-panel/players/create/', admin_views.player_create, name='admin_player_create'),
+    path('admin-panel/players/<int:pk>/edit/', admin_views.player_edit, name='admin_player_edit'),
+    path('admin-panel/players/<int:pk>/delete/', admin_views.player_delete, name='admin_player_delete'),
+    path('admin-panel/rosters/', admin_views.rosters_list, name='admin_rosters_list'),
+    path('admin-panel/rosters/create/', admin_views.roster_create, name='admin_roster_create'),
+    path('admin-panel/rosters/<int:pk>/edit/', admin_views.roster_edit, name='admin_roster_edit'),
+    path('admin-panel/rosters/<int:pk>/delete/', admin_views.roster_delete, name='admin_roster_delete'),
+    path('admin-panel/rosters/<int:pk>/players/add/', admin_views.roster_player_add, name='admin_roster_player_add'),
+    path('admin-panel/rosters/<int:roster_pk>/players/<int:player_pk>/remove/', admin_views.roster_player_remove, name='admin_roster_player_remove'),
+    #судья
+    path('referee/login/', admin_views.referee_login, name='referee_login'),
+    path('referee/logout/', admin_views.referee_logout, name='referee_logout'),
+    path('admin-panel/referees/', admin_views.referees_list, name='admin_referees_list'),
+    path('admin-panel/referees/create/', admin_views.referee_create, name='admin_referee_create'),
+
+
+    path('protocol/', views.protocol_code_entry, name='code_entry'),
 ]

@@ -1,0 +1,403 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Редактирование состава{% endblock %}
+{% block header %}Редактирование состава{% endblock %}
+
+{% block admin_content %}
+<h2>Редактирование состава</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="info-card">
+    <div class="info-grid">
+        <div>
+            <div class="info-label">Турнир</div>
+            <div class="info-value">{{ roster.tournament.name }}</div>
+        </div>
+        <div>
+            <div class="info-label">Команда</div>
+            <div class="info-value">{{ roster.team.name }}</div>
+        </div>
+        <div>
+            <div class="info-label">Пол</div>
+            <div class="info-value">{{ roster.team.get_gender_display }}</div>
+        </div>
+        <div>
+            <div class="info-label">Игроков в составе</div>
+            <div class="info-value">{{ roster_players|length }}</div>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 30px;">
+    <h3 style="margin-bottom: 15px;">Добавить игрока</h3>
+
+    <form method="post" action="{% url 'tournament:admin_roster_player_add' roster.id %}" class="add-form">
+    {% csrf_token %}
+
+    <div class="add-form-grid">
+        <div style="position: relative;">
+            <label for="player_search" style="display: block; margin-bottom: 6px; font-weight: 500; color: #666;">
+                Найти игрока
+            </label>
+
+            <input
+                type="text"
+                id="player_search"
+                placeholder="Начните вводить ФИО или разряд..."
+                autocomplete="off"
+            >
+
+            <input type="hidden" name="player" id="player_id" required>
+
+            <div id="player_dropdown" class="player-dropdown">
+                {% for player in available_players %}
+                    <div
+                        class="player-option"
+                        data-id="{{ player.id }}"
+                        data-name="{{ player.full_name|lower }}"
+                        data-rank="{% if player.rank %}{{ player.rank|lower }}{% endif %}"
+                    >
+                        <div class="player-option-name">{{ player.full_name }}</div>
+                        <div class="player-option-meta">
+                            {% if player.rank %}{{ player.rank }}{% endif %}
+                            {% if player.birth_date %}
+                                {% if player.rank %} • {% endif %}{{ player.birth_date|date:"d.m.Y" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="player-empty">Нет свободных игроков</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="btn-primary" style="width: 100%;">+ Добавить</button>
+        </div>
+    </div>
+</form>
+</div>
+
+<div style="margin-top: 35px;">
+    <h3 style="margin-bottom: 15px;">Игроки состава</h3>
+
+    <div class="table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">#</th>
+                    <th>ФИО</th>
+                    <th style="width: 160px;">Дата рождения</th>
+                    <th style="width: 160px;">Разряд</th>
+                    <th style="width: 120px;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in roster_players %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td><strong>{{ item.player.full_name }}</strong></td>
+                    <td>
+                        {% if item.player.birth_date %}
+                            {{ item.player.birth_date|date:"d.m.Y" }}
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.player.rank %}
+                            {{ item.player.rank }}
+                        {% else %}
+                            <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'tournament:admin_roster_player_remove' roster.id item.player.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-remove" onclick="return confirm('Удалить игрока из состава?')">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center" style="padding: 40px; color: #999;">
+                        В составе пока нет игроков.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .info-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 24px;
+        margin-top: 20px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+    }
+
+    .info-label {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 6px;
+    }
+
+    .info-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .add-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 24px;
+    }
+
+    .add-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 180px;
+        gap: 15px;
+        align-items: end;
+    }
+
+    .add-form select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+
+    .add-form select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #333;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-remove {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        transition: transform 0.2s;
+    }
+
+    .btn-remove:hover {
+        transform: scale(1.2);
+    }
+
+    .alert {
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .admin-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .admin-table thead {
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+    }
+
+    @media (max-width: 768px) {
+        .add-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-table {
+            font-size: 12px;
+        }
+    }
+  #player_search {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#player_search:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.player-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+}
+
+.player-dropdown.show {
+    display: block;
+}
+
+.player-option {
+    padding: 12px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f3f5;
+    transition: background 0.2s;
+}
+
+.player-option:last-child {
+    border-bottom: none;
+}
+
+.player-option:hover {
+    background: #f8f9ff;
+}
+
+.player-option-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.player-option-meta {
+    font-size: 13px;
+    color: #777;
+}
+
+.player-option.hidden {
+    display: none;
+}
+
+.player-empty {
+    padding: 14px;
+    color: #999;
+    font-size: 14px;
+}
+</style>
+<script>
+    const playerSearchInput = document.getElementById('player_search');
+    const playerIdInput = document.getElementById('player_id');
+    const playerDropdown = document.getElementById('player_dropdown');
+    const playerOptions = Array.from(document.querySelectorAll('.player-option'));
+
+    function showDropdown() {
+        if (playerOptions.length > 0) {
+            playerDropdown.classList.add('show');
+        }
+    }
+
+    function hideDropdown() {
+        setTimeout(() => {
+            playerDropdown.classList.remove('show');
+        }, 150);
+    }
+
+    function filterPlayers() {
+        const query = playerSearchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        playerOptions.forEach(option => {
+            const name = option.dataset.name || '';
+            const rank = option.dataset.rank || '';
+            const text = `${name} ${rank}`;
+
+            if (!query || text.includes(query)) {
+                option.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                option.classList.add('hidden');
+            }
+        });
+
+        const emptyBlock = playerDropdown.querySelector('.player-empty');
+        if (emptyBlock) {
+            emptyBlock.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+
+    playerSearchInput.addEventListener('focus', () => {
+        showDropdown();
+        filterPlayers();
+    });
+
+    playerSearchInput.addEventListener('input', () => {
+        playerIdInput.value = '';
+        showDropdown();
+        filterPlayers();
+    });
+
+    playerOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const nameEl = option.querySelector('.player-option-name');
+            playerSearchInput.value = nameEl ? nameEl.textContent.trim() : '';
+            playerIdInput.value = option.dataset.id;
+            playerDropdown.classList.remove('show');
+        });
+    });
+
+    playerSearchInput.addEventListener('blur', hideDropdown);
+
+    document.addEventListener('click', function(event) {
+        if (!playerDropdown.contains(event.target) && event.target !== playerSearchInput) {
+            playerDropdown.classList.remove('show');
+        }
+    });
+</script>
+{% endblock %}

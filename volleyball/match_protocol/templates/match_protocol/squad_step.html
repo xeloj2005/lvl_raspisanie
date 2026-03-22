@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ step_title }}</title>
+    <style>
+        :root {
+            --bg-1: #0f172a;
+            --bg-2: #111827;
+            --panel: rgba(255, 255, 255, 0.92);
+            --panel-2: rgba(248, 250, 252, 0.95);
+            --line: #e5e7eb;
+            --line-strong: #cbd5e1;
+            --text: #0f172a;
+            --muted: #64748b;
+            --success: #059669;
+            --success-soft: rgba(5, 150, 105, 0.12);
+            --shadow: 0 20px 60px rgba(15, 23, 42, 0.28);
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: Inter, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 30%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
+            min-height: 100%;
+        }
+
+        body.team-a {
+            --accent: #dc2626;
+            --accent-2: #f87171;
+            --accent-soft: rgba(220, 38, 38, 0.10);
+            --hero-grad-1: rgba(220, 38, 38, 0.96);
+            --hero-grad-2: rgba(248, 113, 113, 0.82);
+            --hero-glow: rgba(248, 113, 113, 0.18);
+        }
+
+        body.team-b {
+            --accent: #2563eb;
+            --accent-2: #60a5fa;
+            --accent-soft: rgba(37, 99, 235, 0.10);
+            --hero-grad-1: rgba(37, 99, 235, 0.96);
+            --hero-grad-2: rgba(96, 165, 250, 0.84);
+            --hero-glow: rgba(96, 165, 250, 0.18);
+        }
+
+        .shell {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 24px 14px;
+        }
+
+        .phone {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .card {
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.28);
+        }
+
+        .hero {
+            padding: 22px 20px 18px;
+            background:
+                radial-gradient(circle at top right, var(--hero-glow), transparent 35%),
+                linear-gradient(135deg, var(--hero-grad-1), var(--hero-grad-2));
+            color: white;
+        }
+
+        .hero-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .code-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.18);
+            font-size: 12px;
+            letter-spacing: .02em;
+            font-weight: 700;
+        }
+
+        .hero h1 {
+            margin: 14px 0 8px;
+            font-size: 28px;
+            line-height: 1.15;
+            font-weight: 800;
+        }
+
+        .hero-subtitle {
+            margin: 0;
+            opacity: 0.94;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .match-strip {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.82);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .match-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .match-title {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .side-chip {
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            white-space: nowrap;
+        }
+
+        .match-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .meta-pill {
+            padding: 7px 10px;
+            background: #f8fafc;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+        }
+
+        .messages {
+            padding: 14px 18px 0;
+        }
+
+        .message {
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.10);
+            color: #991b1b;
+            border: 1px solid rgba(239, 68, 68, 0.18);
+        }
+
+        .message.success {
+            background: var(--success-soft);
+            color: #065f46;
+            border: 1px solid rgba(5, 150, 105, 0.18);
+        }
+
+        .content {
+            padding: 16px 18px 22px;
+        }
+
+        .section-title {
+            margin: 0 0 6px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .section-subtitle {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .table-shell {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--panel-2);
+        }
+
+        .table-head,
+        .row {
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr) 64px 64px;
+            align-items: center;
+        }
+
+        .table-head {
+            background: linear-gradient(180deg, #fff, #f8fafc);
+            border-bottom: 1px solid var(--line);
+            min-height: 52px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--muted);
+        }
+
+        .table-head > div,
+        .row > div {
+            padding: 0 12px;
+        }
+
+        .row {
+            min-height: 62px;
+            border-bottom: 1px solid var(--line);
+            transition: background-color .18s ease;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .row:hover {
+            background: rgba(248, 250, 252, 0.95);
+        }
+
+        .name {
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .num-wrap {
+            display: flex;
+            justify-content: center;
+        }
+
+        .num-input {
+            width: 52px;
+            height: 42px;
+            border: 1px solid var(--line-strong);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            background: white;
+            outline: none;
+            transition: .18s ease;
+        }
+
+        .num-input:focus {
+            border-color: var(--accent-2);
+            box-shadow: 0 0 0 4px var(--accent-soft);
+        }
+
+        .toggle-wrap {
+            display: flex;
+            justify-content: center;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            border: 1px solid var(--line-strong);
+            background: white;
+            cursor: pointer;
+            transition: .18s ease;
+            user-select: none;
+        }
+
+        .toggle input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .toggle span {
+            font-size: 18px;
+            font-weight: 800;
+            color: #94a3b8;
+            transition: .18s ease;
+        }
+
+        .toggle.active {
+            background: var(--accent-soft);
+            border-color: color-mix(in srgb, var(--accent) 20%, white);
+        }
+
+        .toggle.active span {
+            color: var(--accent);
+        }
+
+        .footer {
+            padding-top: 18px;
+        }
+
+        .rule-box {
+            padding: 14px 15px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .rule-box strong {
+            color: var(--text);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 56px;
+            border: none;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: white;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: .01em;
+            cursor: pointer;
+            box-shadow: 0 14px 30px color-mix(in srgb, var(--accent) 28%, transparent);
+            transition: transform .16s ease, box-shadow .16s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 420px) {
+            .hero h1 {
+                font-size: 24px;
+            }
+
+            .table-head,
+            .row {
+                grid-template-columns: 64px minmax(0, 1fr) 58px 58px;
+            }
+
+            .table-head > div,
+            .row > div {
+                padding: 0 10px;
+            }
+
+            .name {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body class="{% if side == 'A' %}team-a{% else %}team-b{% endif %}">
+<div class="shell">
+    <div class="phone">
+        <div class="card">
+            <div class="hero">
+                <div class="hero-top">
+                    <div></div>
+                    <div class="code-badge">
+                        Код: {{ match.protocol_code }}
+                    </div>
+                </div>
+
+                <h1>{{ team_name }}</h1>
+                <p class="hero-subtitle">{{ step_hint }}</p>
+            </div>
+
+            <div class="match-strip">
+                <div class="match-main">
+                    <div class="match-title">
+                        {{ match.team_a.name }} — {{ match.team_b.name }}
+                    </div>
+                    <div class="side-chip">
+                        {% if side == "A" %}Команда A{% else %}Команда B{% endif %}
+                    </div>
+                </div>
+
+                <div class="match-meta">
+                    <div class="meta-pill">{{ match.tournament.name }}</div>
+                    {% if match.venue %}
+                        <div class="meta-pill">{{ match.venue.name }}</div>
+                    {% endif %}
+                    {% if match.date_time %}
+                        <div class="meta-pill">{{ match.date_time|date:"d.m.Y H:i" }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="content">
+                <h2 class="section-title">Состав на матч</h2>
+                <p class="section-subtitle">
+                    Заполните номер игрока на матч и при необходимости отметьте роли.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="table-shell">
+                        <div class="table-head">
+                            <div>№</div>
+                            <div>Игрок</div>
+                            <div>Л</div>
+                            <div>К</div>
+                        </div>
+
+                        {% for row in rows %}
+                            <div class="row">
+                                <div class="num-wrap">
+                                    <input
+                                        class="num-input"
+                                        type="number"
+                                        name="number_{{ row.id }}"
+                                        min="1"
+                                        value="{{ row.match_number }}"
+                                        inputmode="numeric"
+                                    >
+                                    <input type="hidden" name="active_{{ row.id }}" value="1">
+                                </div>
+
+                                <div class="name" title="{{ row.full_name }}">
+                                    {{ row.full_name }}
+                                </div>
+
+                                <div class="toggle-wrap">
+                                    <label class="toggle {% if row.is_libero %}active{% endif %}">
+                                        <input
+                                            type="checkbox"
+                                            name="libero_{{ row.id }}"
+                                            value="1"
+                                            {% if row.is_libero %}checked{% endif %}
+                                        >
+                                        <span>Л</span>
+                                    </label>
+                                </div>
+
+                                <div class="toggle-wrap">
+                                    <label class="toggle {% if row.is_captain %}active{% endif %}">
+                                        <input
+                                            type="checkbox"
+                                            name="captain_{{ row.id }}"
+                                            value="1"
+                                            {% if row.is_captain %}checked{% endif %}
+                                        >
+                                        <span>К</span>
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="footer">
+                        <div class="rule-box">
+                            <strong>Проверка перед сохранением:</strong><br>
+                            минимум 6 игроков, не более 2 либеро и <strong>ровно 1 капитан</strong>.
+                        </div>
+
+                        <div class="actions">
+                            <button type="submit" class="btn-primary">
+                                {% if side == "A" %}
+                                    Сохранить и перейти к следующей команде
+                                {% else %}
+                                    Сохранить и перейти к расстановке
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.toggle').forEach(function(toggle) {
+        const input = toggle.querySelector('input');
+
+        function sync() {
+            if (input.checked) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        toggle.addEventListener('click', function() {
+            setTimeout(sync, 0);
+        });
+
+        sync();
+    });
+
+    document.querySelectorAll('input[name^="captain_"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            if (!this.checked) return;
+
+            document.querySelectorAll('input[name^="captain_"]').forEach(function(other) {
+                if (other !== input) {
+                    other.checked = false;
+                    const wrap = other.closest('.toggle');
+                    if (wrap) {
+                        wrap.classList.remove('active');
+                    }
+                }
+            });
+
+            const wrap = input.closest('.toggle');
+            if (wrap) {
+                wrap.classList.add('active');
+            }
+        });
+    });
+</script>
+</body>
+</html>

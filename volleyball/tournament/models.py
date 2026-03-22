@@ -1,6 +1,14 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
+import random
 
+def generate_unique_protocol_code():
+    while True:
+        code = f"{random.randint(0, 99999999):08d}"
+        if not Match.objects.filter(protocol_code=code).exists():
+            return code
 
 class TournamentGroup(models.Model):
     """Группа турниров (например: 'Сезон 2024', 'Кубок города')"""
@@ -40,6 +48,7 @@ class Team(models.Model):
 
     name = models.CharField('Название', max_length=200)
     gender = models.CharField('Пол', max_length=1, choices=GENDER_CHOICES)
+    coach = models.CharField('Тренер', max_length=200, blank=True)
 
     class Meta:
         verbose_name = 'Команда'
@@ -48,6 +57,21 @@ class Team(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_gender_display()})"
+
+
+class Player(models.Model):
+    """Игрок команды"""
+    full_name = models.CharField('ФИО', max_length=255)
+    birth_date = models.DateField('Дата рождения', null=True, blank=True)
+    rank = models.CharField('Разряд', max_length=100, blank=True)
+
+    class Meta:
+        verbose_name = 'Игрок'
+        verbose_name_plural = 'Игроки'
+        ordering = ['full_name']
+
+    def __str__(self):
+        return self.full_name
 
 
 class Tournament(models.Model):
@@ -105,7 +129,6 @@ class Tournament(models.Model):
         return f"{self.name} ({self.get_gender_display()})"
 
     def clean(self):
-        from django.core.exceptions import ValidationError
         if self.has_playoff and not self.playoff_teams:
             raise ValidationError('Укажите количество команд в плейофф')
 
@@ -156,11 +179,20 @@ class Match(models.Model):
     sets_a = models.IntegerField('Сеты команды А', null=True, blank=True)
     sets_b = models.IntegerField('Сеты команды Б', null=True, blank=True)
 
-    # Счет по сетам (сохраняем как JSON строку)
+    # Счет по сетам
     set_scores = models.JSONField('Счет по сетам', null=True, blank=True, default=list)
     # Формат: [{"a": 25, "b": 20}, {"a": 23, "b": 25}, ...]
 
     is_finished = models.BooleanField('Завершен', default=False)
+
+    protocol_code = models.CharField(
+        'Код протокола',
+        max_length=8,
+        unique=True,
+        blank=True,
+        null=True
+    )
+    protocol_code_active = models.BooleanField('Код протокола активен', default=False)
 
     class Meta:
         verbose_name = 'Матч'
@@ -187,8 +219,6 @@ class Match(models.Model):
         return score_str
 
     def clean(self):
-        from django.core.exceptions import ValidationError
-
         # Проверка пола команд
         if self.team_a.gender != self.tournament.gender:
             raise ValidationError(f'Команда {self.team_a} не подходит по полу для этого турнира')
@@ -198,6 +228,12 @@ class Match(models.Model):
         # Проверка, что команды разные
         if self.team_a == self.team_b:
             raise ValidationError('Команда не может играть сама с собой')
+
+        # Проверка, что команды добавлены в турнир
+        if self.team_a_id and not self.tournament.teams.filter(pk=self.team_a_id).exists():
+            raise ValidationError(f'Команда {self.team_a} не добавлена в выбранный турнир')
+        if self.team_b_id and not self.tournament.teams.filter(pk=self.team_b_id).exists():
+            raise ValidationError(f'Команда {self.team_b} не добавлена в выбранный турнир')
 
 
 class StandingsCache(models.Model):
@@ -230,3 +266,75 @@ class StandingsCache(models.Model):
 
     def __str__(self):
         return f"{self.tournament.name} - {self.team.name}"
+
+class TournamentTeamRoster(models.Model):
+    tournament = models.ForeignKey(
+        Tournament,
+        on_delete=models.CASCADE,
+        related_name='rosters',
+        verbose_name='Турнир'
+    )
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        related_name='rosters',
+        verbose_name='Команда'
+    )
+
+    class Meta:
+        verbose_name = 'Состав команды на турнир'
+        verbose_name_plural = 'Составы команд на турнир'
+        unique_together = ['tournament', 'team']
+        ordering = ['tournament', 'team']
+
+    def __str__(self):
+        return f'{self.tournament.name} — {self.team.name}'
+
+    def clean(self):
+        if self.team.gender != self.tournament.gender:
+            raise ValidationError('Команда не подходит по полу для выбранного турнира')
+
+        if self.team_id and not self.tournament.teams.filter(pk=self.team_id).exists():
+            raise ValidationError('Команда не добавлена в выбранный турнир')
+
+class TournamentRosterPlayer(models.Model):
+    roster = models.ForeignKey(
+        TournamentTeamRoster,
+        on_delete=models.CASCADE,
+        related_name='roster_players',
+        verbose_name='Состав'
+    )
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='rosters',
+        verbose_name='Игрок'
+    )
+
+    class Meta:
+        verbose_name = 'Игрок состава'
+        verbose_name_plural = 'Игроки состава'
+        unique_together = ['roster', 'player']
+        ordering = ['player__full_name']
+
+    def __str__(self):
+        return self.player.full_name
+
+class Referee(models.Model):
+    """Судья"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='referee_profile',
+        verbose_name='Пользователь'
+    )
+    full_name = models.CharField('ФИО', max_length=255)
+    is_active = models.BooleanField('Активен', default=True)
+
+    class Meta:
+        verbose_name = 'Судья'
+        verbose_name_plural = 'Судьи'
+        ordering = ['full_name']
+
+    def __str__(self):
+        return self.full_name
