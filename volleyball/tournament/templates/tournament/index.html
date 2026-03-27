@@ -29,29 +29,62 @@
 {% endblock %}
 
 {% block content %}
-<h2>Добро пожаловать!</h2>
-<p style="margin-bottom: 20px; color: #666; font-size: 16px;">
-    Выберите турнир из меню слева (или нажмите на кнопку меню ☰ на мобильных устройствах)
+<h2 style="margin-bottom: 10px;">Турниры</h2>
+<p style="margin-bottom: 25px; color: #666; font-size: 16px;">
+    Выберите турнир из списка ниже или через меню слева.
 </p>
 
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; color: white; margin-top: 30px;">
-    <h3 style="color: white; margin-top: 0; font-size: 22px;">Доступные группы турниров:</h3>
-    {% if groups %}
-        <ul style="list-style: none; padding: 0;">
+{% if groups %}
+    <div style="display: grid; gap: 20px;">
         {% for group in groups %}
-            <li style="margin: 15px 0; font-size: 18px;">
-                <strong>{{ group.name }}</strong>
-                <span style="opacity: 0.8; font-size: 14px; margin-left: 10px;">
-                    ({{ group.tournaments.count }} 
-                    {% if group.tournaments.count == 1 %}турнир
-                    {% elif group.tournaments.count < 5 %}турнира
-                    {% else %}турниров{% endif %})
-                </span>
-            </li>
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden;">
+            <div style="padding: 18px 22px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <h3 style="margin: 0; color: white; font-size: 20px;">{{ group.name }}</h3>
+                    <span style="font-size: 14px; opacity: 0.9;">
+                        {{ group.tournaments.count }}
+                        {% if group.tournaments.count == 1 %}
+                            турнир
+                        {% elif group.tournaments.count < 5 %}
+                            турнира
+                        {% else %}
+                            турниров
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div style="padding: 0;">
+                {% for tournament in group.tournaments.all %}
+                <a href="{% url 'tournament:tournament_detail' tournament.id %}"
+                   style="display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 22px; text-decoration: none; color: inherit; border-bottom: 1px solid #f0f0f0; transition: background 0.2s ease;"
+                   onmouseover="this.style.background='#f8f9ff'"
+                   onmouseout="this.style.background='white'">
+                    <div>
+                        <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px;">
+                            {{ tournament.name }}
+                        </div>
+
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+
+
+                        <span style="color: #999; font-size: 18px;">→</span>
+                    </div>
+                </a>
+                {% empty %}
+                <div style="padding: 18px 22px; color: #999; font-size: 14px;">
+                    В этой группе пока нет турниров
+                </div>
+                {% endfor %}
+            </div>
+        </div>
         {% endfor %}
-        </ul>
-    {% else %}
-        <p style="opacity: 0.9;">Пока нет доступных турниров. Обратитесь к администратору.</p>
-    {% endif %}
-</div>
+    </div>
+{% else %}
+    <div style="background: white; border-radius: 12px; padding: 40px 20px; text-align: center; color: #999; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+        Группы турниров не найдены
+    </div>
+{% endif %}
 {% endblock %}
