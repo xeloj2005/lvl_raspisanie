@@ -100,20 +100,20 @@
         
         <div id="score_fields" style="display: {% if match and match.is_finished %}block{% else %}none{% endif %};">
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                <h4 style="margin-top: 0;">Счет по партиям (до 3 побед)</h4>
-                <p style="margin: 0 0 15px 0; color: #666; font-size: 13px;">
-                    Партии до 25 очков (5-я до 15) с разницей в 2 очка
-                </p>
+                <h4 id="score_title" style="margin-top: 0;">Счет по партиям</h4>
+<p id="score_hint" style="margin: 0 0 15px 0; color: #666; font-size: 13px;">
+    Партии до 25 очков (5-я до 15) с разницей в 2 очка
+</p>
                 
                 <div id="sets_container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
                     {% for i in "12345" %}
-                    <div class="set-group">
+                    <div class="set-group" data-set-group="{{ i }}">
                         <div style="font-weight: 600; color: #667eea; margin-bottom: 10px;">Партия {{ i }}</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="number" class="set-input set-a" name="set-a-{{ i }}" data-set="{{ i }}" placeholder="А" min="0" max="30" 
+                            <input type="number" class="set-input set-a" name="set-a-{{ i }}" data-set="{{ i }}" placeholder="А" min="0" max="100"
                                    style="width: 50px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
                             <span style="font-weight: 600;">:</span>
-                            <input type="number" class="set-input set-b" name="set-b-{{ i }}" data-set="{{ i }}" placeholder="Б" min="0" max="30"
+                            <input type="number" class="set-input set-b" name="set-b-{{ i }}" data-set="{{ i }}" placeholder="Б" min="0" max="100"
                                    style="width: 50px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
                         </div>
                         <div style="font-size: 12px; color: #999; margin-top: 5px;" class="set-status"></div>
@@ -260,278 +260,394 @@
 </style>
 
 <!-- Скрытый элемент для передачи set_scores в JavaScript -->
-<div id="match-data" 
-     data-set-scores="{{ match.set_scores|safe|default:'[]' }}"
+
+<div id="match-data"
+     data-set-scores='{{ match.set_scores|safe|default:"[]" }}'
+     {% if match %}data-match-tournament-id="{{ match.tournament.id }}"{% endif %}
      {% if match %}data-match-team-a-id="{{ match.team_a.id }}"{% endif %}
      {% if match %}data-match-team-b-id="{{ match.team_b.id }}"{% endif %}
+     {% if match and match.venue %}data-match-venue-id="{{ match.venue.id }}"{% endif %}
+     {% if match %}data-match-stage="{{ match.stage }}"{% endif %}
+     {% if match.round_number %}data-match-round-number="{{ match.round_number }}"{% endif %}
+     {% if match and match.date_time %}data-match-datetime="{{ match.date_time|date:'Y-m-d\\TH:i' }}"{% endif %}
+     {% if match %}data-match-is-finished="{% if match.is_finished %}1{% else %}0{% endif %}"{% endif %}
+     {% if match.sets_a is not None %}data-match-sets-a="{{ match.sets_a }}"{% endif %}
+     {% if match.sets_b is not None %}data-match-sets-b="{{ match.sets_b }}"{% endif %}
      style="display: none;"></div>
-
 <!-- Скрытый элемент для передачи данных турниров и команд -->
 <div id="tournaments-data" style="display: none;">
     {% for tournament in tournaments %}
-    <div class="tournament-teams" data-tournament-id="{{ tournament.id }}" data-tournament-name="{{ tournament.name }}">
+    <div class="tournament-teams"
+         data-tournament-id="{{ tournament.id }}"
+         data-tournament-name="{{ tournament.name }}"
+         data-tournament-type="{{ tournament.tournament_type }}">
         {% for team in tournament.teams.all %}
-        <span class="team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" data-team-gender="{{ team.get_gender_display }}">{{ team.name }}</span>
+        <span class="team"
+              data-team-id="{{ team.id }}"
+              data-team-name="{{ team.name }}"
+              data-team-gender="{{ team.get_gender_display }}">
+            {{ team.name }}
+        </span>
         {% endfor %}
     </div>
     {% endfor %}
 </div>
 
 <script>
+    function getMatchDataElement() {
+        return document.getElementById('match-data');
+    }
+
+    function getSelectedTournamentElement() {
+        const tournamentSelect = document.getElementById('tournament');
+        const selectedTournamentId = tournamentSelect ? tournamentSelect.value : '';
+        if (!selectedTournamentId) return null;
+        return document.querySelector(`#tournaments-data .tournament-teams[data-tournament-id="${selectedTournamentId}"]`);
+    }
+
+    function getCurrentFormatSettings() {
+        const tournamentDiv = getSelectedTournamentElement();
+        const tournamentType = tournamentDiv ? tournamentDiv.getAttribute('data-tournament-type') : 'LEAGUE';
+        const isShort = tournamentType === 'SHORT';
+
+        return {
+            tournamentType,
+            isShort,
+            maxSets: isShort ? 3 : 5,
+            setsToWin: isShort ? 2 : 3,
+            decidingSetNumber: isShort ? 3 : 5,
+        };
+    }
+
+    function syncMatchFormatUI() {
+        const settings = getCurrentFormatSettings();
+        const scoreTitle = document.getElementById('score_title');
+        const scoreHint = document.getElementById('score_hint');
+        const setsA = document.getElementById('sets_a');
+        const setsB = document.getElementById('sets_b');
+
+        if (scoreTitle) {
+            scoreTitle.textContent = settings.isShort
+                ? 'Счет по партиям (до 2 побед)'
+                : 'Счет по партиям (до 3 побед)';
+        }
+
+        if (scoreHint) {
+            scoreHint.textContent = settings.isShort
+                ? 'Партии до 25 очков (3-я до 15) с разницей в 2 очка'
+                : 'Партии до 25 очков (5-я до 15) с разницей в 2 очка';
+        }
+
+        if (setsA) setsA.max = settings.setsToWin;
+        if (setsB) setsB.max = settings.setsToWin;
+
+        document.querySelectorAll('[data-set-group]').forEach(group => {
+            const setNum = parseInt(group.getAttribute('data-set-group'), 10);
+            const show = setNum <= settings.maxSets;
+            group.style.display = show ? 'block' : 'none';
+
+            group.querySelectorAll('input').forEach(input => {
+                input.disabled = !show;
+                if (!show) input.value = '';
+            });
+
+            const status = group.querySelector('.set-status');
+            if (status && !show) status.textContent = '';
+        });
+    }
+
     function updateTeams() {
-        // При выборе турнира обновляются доступные команды
-        const tournament = document.getElementById('tournament');
-        const selectedTournamentId = tournament.value;
+        const tournamentSelect = document.getElementById('tournament');
         const teamASelect = document.getElementById('team_a');
         const teamBSelect = document.getElementById('team_b');
-        
-        // Сохраняем текущие выбранные значения перед очисткой
+        const matchData = getMatchDataElement();
+
+        if (!tournamentSelect || !teamASelect || !teamBSelect) return;
+
+        const selectedTournamentId = tournamentSelect.value;
         const currentTeamAId = teamASelect.value;
         const currentTeamBId = teamBSelect.value;
-        
-        // Очищаем текущие опции команд
+
         teamASelect.innerHTML = '<option value="">Выберите команду</option>';
         teamBSelect.innerHTML = '<option value="">Выберите команду</option>';
-        
-        // Если турнир не выбран, выходим
+
         if (!selectedTournamentId) {
+            syncMatchFormatUI();
             return;
         }
-        
-        // Находим турнир в скрытом контейнере
-        const tournamentsData = document.getElementById('tournaments-data');
-        if (!tournamentsData) {
-            console.warn('tournaments-data контейнер не найден');
-            return;
-        }
-        
-        const tournamentDiv = tournamentsData.querySelector(`[data-tournament-id="${selectedTournamentId}"]`);
-        
+
+        const tournamentDiv = document.querySelector(`#tournaments-data .tournament-teams[data-tournament-id="${selectedTournamentId}"]`);
         if (!tournamentDiv) {
-            console.warn(`Турнир с ID ${selectedTournamentId} не найден в контейнере`);
+            syncMatchFormatUI();
             return;
         }
-        
-        // Получаем все команды этого турнира
+
         const teams = tournamentDiv.querySelectorAll('.team');
-        
-        if (teams.length === 0) {
-            console.warn(`Команды для турнира ${selectedTournamentId} не найдены`);
-            return;
-        }
-        
-        // Добавляем команды в оба селекта
+
         teams.forEach(teamElement => {
             const teamId = teamElement.getAttribute('data-team-id');
             const teamName = teamElement.getAttribute('data-team-name');
             const teamGender = teamElement.getAttribute('data-team-gender');
-            
+
             const optionA = document.createElement('option');
             optionA.value = teamId;
             optionA.textContent = `${teamName} (${teamGender})`;
             teamASelect.appendChild(optionA);
-            
+
             const optionB = document.createElement('option');
             optionB.value = teamId;
             optionB.textContent = `${teamName} (${teamGender})`;
             teamBSelect.appendChild(optionB);
         });
-        
-        // Восстанавливаем выбранные значения если редактируем матч
-        const matchElement = document.getElementById('match-data');
-        if (matchElement && matchElement.dataset.matchTeamAId) {
-            teamASelect.value = matchElement.dataset.matchTeamAId;
+
+        if (matchData && matchData.dataset.matchTeamAId) {
+            teamASelect.value = matchData.dataset.matchTeamAId;
         } else if (currentTeamAId) {
             teamASelect.value = currentTeamAId;
         }
-        
-        if (matchElement && matchElement.dataset.matchTeamBId) {
-            teamBSelect.value = matchElement.dataset.matchTeamBId;
+
+        if (matchData && matchData.dataset.matchTeamBId) {
+            teamBSelect.value = matchData.dataset.matchTeamBId;
         } else if (currentTeamBId) {
             teamBSelect.value = currentTeamBId;
         }
+
+        syncMatchFormatUI();
     }
-    
-    function initializeTeamsWithRetry(attempts = 0, maxAttempts = 10) {
-        // Пытаемся загрузить команды с повторными попытками
-        const tournamentsData = document.getElementById('tournaments-data');
-        
-        if (!tournamentsData) {
-            if (attempts < maxAttempts) {
-                // Если контейнер еще не готов, повторим через 50ms
-                setTimeout(() => initializeTeamsWithRetry(attempts + 1, maxAttempts), 50);
-            }
-            return;
+
+    function restoreMatchFields() {
+        const matchData = getMatchDataElement();
+        if (!matchData) return;
+
+        const tournamentSelect = document.getElementById('tournament');
+        const venueSelect = document.getElementById('venue');
+        const stageSelect = document.getElementById('stage');
+        const roundNumberInput = document.getElementById('round_number');
+        const dateTimeInput = document.getElementById('date_time');
+        const isFinishedCheckbox = document.getElementById('is_finished');
+        const setsAInput = document.getElementById('sets_a');
+        const setsBInput = document.getElementById('sets_b');
+
+        if (tournamentSelect && matchData.dataset.matchTournamentId) {
+            tournamentSelect.value = matchData.dataset.matchTournamentId;
         }
-        
-        // Контейнер найден, пытаемся загрузить команды
+
+        if (venueSelect && matchData.dataset.matchVenueId) {
+            venueSelect.value = matchData.dataset.matchVenueId;
+        }
+
+        if (stageSelect && matchData.dataset.matchStage) {
+            stageSelect.value = matchData.dataset.matchStage;
+        }
+
+        if (roundNumberInput && matchData.dataset.matchRoundNumber) {
+            roundNumberInput.value = matchData.dataset.matchRoundNumber;
+        }
+
+        if (dateTimeInput && matchData.dataset.matchDatetime) {
+            dateTimeInput.value = matchData.dataset.matchDatetime;
+        }
+
+        if (isFinishedCheckbox && matchData.dataset.matchIsFinished) {
+            isFinishedCheckbox.checked = matchData.dataset.matchIsFinished === '1';
+        }
+
+        if (setsAInput && matchData.dataset.matchSetsA !== undefined) {
+            setsAInput.value = matchData.dataset.matchSetsA || '';
+        }
+
+        if (setsBInput && matchData.dataset.matchSetsB !== undefined) {
+            setsBInput.value = matchData.dataset.matchSetsB || '';
+        }
+
         updateTeams();
+        toggleRoundNumber();
+        toggleScoreFields();
     }
-    
+
+    function restoreSetScores() {
+        const matchData = getMatchDataElement();
+        if (!matchData) return;
+
+        try {
+            const setScoresJSON = matchData.getAttribute('data-set-scores');
+            const setScores = JSON.parse(setScoresJSON || '[]');
+
+            if (setScores && Array.isArray(setScores)) {
+                setScores.forEach((set, index) => {
+                    const setNum = index + 1;
+                    const inputA = document.querySelector(`.set-a[data-set="${setNum}"]`);
+                    const inputB = document.querySelector(`.set-b[data-set="${setNum}"]`);
+
+                    if (inputA && set.a !== undefined) inputA.value = set.a;
+                    if (inputB && set.b !== undefined) inputB.value = set.b;
+                });
+            }
+        } catch (e) {
+            console.error('Ошибка при загрузке set_scores:', e);
+        }
+    }
+
     function toggleScoreFields() {
         const isFinished = document.getElementById('is_finished').checked;
-        document.getElementById('score_fields').style.display = isFinished ? 'block' : 'none';
-        if (!isFinished) {
-            // Очищаем все поля партий при отмене
-            document.querySelectorAll('.set-input').forEach(input => input.value = '');
-            document.getElementById('sets_a').value = '';
-            document.getElementById('sets_b').value = '';
+        const scoreFields = document.getElementById('score_fields');
+        if (scoreFields) {
+            scoreFields.style.display = isFinished ? 'block' : 'none';
+        }
+
+        if (isFinished) {
+            syncMatchFormatUI();
         }
     }
-    
+
     function toggleRoundNumber() {
-        // Показываем номер тура только для регулярных туров
         const stage = document.getElementById('stage').value;
         const roundGroup = document.getElementById('round_number_group');
-        roundGroup.style.display = stage === 'REGULAR' ? 'block' : 'none';
+        if (roundGroup) {
+            roundGroup.style.display = stage === 'REGULAR' ? 'block' : 'none';
+        }
     }
-    
+
     function validateSetScore(setNum, teamA, teamB) {
-        // Валидирует счет партии согласно волейбольным правилам
-        const isLastSet = setNum === 5;
-        const maxPoints = isLastSet ? 15 : 25;
-        const minDiff = 2;
-        
-        // Если одна из команд меньше maxPoints - не валидно
-        if (teamA < maxPoints && teamB < maxPoints) {
-            return false; // Еще не завершена
-        }
-        
-        // Если обе команды >= maxPoints, проверяем разницу
-        if (teamA >= maxPoints && teamB >= maxPoints) {
-            if (Math.abs(teamA - teamB) < minDiff) {
-                return false; // Разница менее 2
-            }
-        }
-        
-        return true; // Валидно
+        const settings = getCurrentFormatSettings();
+        const isDecidingSet = setNum === settings.decidingSetNumber;
+        const maxPoints = isDecidingSet ? 15 : 25;
+
+        if (teamA === 0 && teamB === 0) return false;
+        if (teamA < maxPoints && teamB < maxPoints) return false;
+        if (Math.abs(teamA - teamB) < 2) return false;
+
+        return true;
     }
-    
+
     function calculateSetWinner(setNum, teamA, teamB) {
-        if (!validateSetScore(setNum, teamA, teamB)) {
-            return null; // Не завершена
-        }
+        if (!validateSetScore(setNum, teamA, teamB)) return null;
         return teamA > teamB ? 'a' : 'b';
     }
-    
+
     function updateScores() {
-        // Обновляем автоматически при изменении любого поля партии
-        const setInputs = document.querySelectorAll('.set-input');
+        const settings = getCurrentFormatSettings();
         let setsWonA = 0;
         let setsWonB = 0;
-        let allValid = true;
-        
-        // Проходим по всем партиям
+
         for (let i = 1; i <= 5; i++) {
+            const group = document.querySelector(`.set-group[data-set-group="${i}"]`);
             const inputA = document.querySelector(`.set-a[data-set="${i}"]`);
             const inputB = document.querySelector(`.set-b[data-set="${i}"]`);
-            const statusDiv = document.querySelector(`.set-group:nth-child(${i}) .set-status`);
-            
+            const statusDiv = group ? group.querySelector('.set-status') : null;
+
+            if (!group || !inputA || !inputB) continue;
+            if (i > settings.maxSets) continue;
+
             const scoreA = parseInt(inputA.value) || 0;
             const scoreB = parseInt(inputB.value) || 0;
-            
+
             if (scoreA === 0 && scoreB === 0) {
-                statusDiv.textContent = '';
-                allValid = false;
+                if (statusDiv) statusDiv.textContent = '';
+                inputA.disabled = false;
+                inputB.disabled = false;
                 continue;
             }
-            
-            const isValid = validateSetScore(i, scoreA, scoreB);
+
             const winner = calculateSetWinner(i, scoreA, scoreB);
-            
+
             if (winner === 'a') {
                 setsWonA++;
-                statusDiv.textContent = '✓ Команда А';
-                statusDiv.style.color = '#155724';
+                if (statusDiv) {
+                    statusDiv.textContent = '✓ Команда А';
+                    statusDiv.style.color = '#155724';
+                }
             } else if (winner === 'b') {
                 setsWonB++;
-                statusDiv.textContent = '✓ Команда Б';
-                statusDiv.style.color = '#155724';
-            } else if (!isValid && (scoreA > 0 || scoreB > 0)) {
-                statusDiv.textContent = 'Невалидный счет';
-                statusDiv.style.color = '#721c24';
-                allValid = false;
+                if (statusDiv) {
+                    statusDiv.textContent = '✓ Команда Б';
+                    statusDiv.style.color = '#155724';
+                }
+            } else {
+                if (statusDiv) {
+                    statusDiv.textContent = 'Невалидный счет';
+                    statusDiv.style.color = '#721c24';
+                }
             }
-            
-            // Если одна из команд получила 3 побед, остальные поля скрываем
-            if (setsWonA >= 3 || setsWonB >= 3) {
-                for (let j = i + 1; j <= 5; j++) {
+
+            if (setsWonA >= settings.setsToWin || setsWonB >= settings.setsToWin) {
+                for (let j = i + 1; j <= settings.maxSets; j++) {
                     const nextA = document.querySelector(`.set-a[data-set="${j}"]`);
                     const nextB = document.querySelector(`.set-b[data-set="${j}"]`);
-                    nextA.disabled = true;
-                    nextB.disabled = true;
-                    nextA.style.opacity = '0.5';
-                    nextB.style.opacity = '0.5';
+                    const nextGroup = document.querySelector(`.set-group[data-set-group="${j}"]`);
+                    const nextStatus = nextGroup ? nextGroup.querySelector('.set-status') : null;
+
+                    if (nextA) {
+                        nextA.disabled = true;
+                        nextA.style.opacity = '0.5';
+                    }
+                    if (nextB) {
+                        nextB.disabled = true;
+                        nextB.style.opacity = '0.5';
+                    }
+                    if (nextStatus) nextStatus.textContent = '';
                 }
                 break;
             }
         }
-        
-        // Включаем оставшиеся поля если они были отключены
-        if (setsWonA < 3 && setsWonB < 3) {
-            for (let j = 1; j <= 5; j++) {
+
+        if (setsWonA < settings.setsToWin && setsWonB < settings.setsToWin) {
+            for (let j = 1; j <= settings.maxSets; j++) {
                 const nextA = document.querySelector(`.set-a[data-set="${j}"]`);
                 const nextB = document.querySelector(`.set-b[data-set="${j}"]`);
-                nextA.disabled = false;
-                nextA.style.opacity = '1';
-                nextB.disabled = false;
-                nextB.style.opacity = '1';
-            }
-        }
-        
-        // Обновляем итоговый счет в партиях
-        document.getElementById('sets_a').value = setsWonA;
-        document.getElementById('sets_b').value = setsWonB;
-    }
-    
-    // Инициализация
-    document.addEventListener('DOMContentLoaded', function() {
-        // Загружаем set_scores если редактируем существующий матч
-        const matchDataElement = document.getElementById('match-data');
-        if (matchDataElement) {
-            try {
-                const setScoresJSON = matchDataElement.getAttribute('data-set-scores');
-                const setScores = JSON.parse(setScoresJSON);
-                
-                if (setScores && Array.isArray(setScores) && setScores.length > 0) {
-                    // Заполняем поля партий загруженными значениями
-                    setScores.forEach((set, index) => {
-                        const setNum = index + 1;
-                        const inputA = document.querySelector(`.set-a[data-set="${setNum}"]`);
-                        const inputB = document.querySelector(`.set-b[data-set="${setNum}"]`);
-                        
-                        if (inputA && set.a !== undefined) inputA.value = set.a;
-                        if (inputB && set.b !== undefined) inputB.value = set.b;
-                    });
+                if (nextA) {
+                    nextA.disabled = false;
+                    nextA.style.opacity = '1';
                 }
-            } catch (e) {
-                console.error('Ошибка при загрузке set_scores:', e);
+                if (nextB) {
+                    nextB.disabled = false;
+                    nextB.style.opacity = '1';
+                }
             }
         }
-        
-        // Скрываем/показываем номер тура в зависимости от этапа
+
+        const setsA = document.getElementById('sets_a');
+        const setsB = document.getElementById('sets_b');
+        if (setsA) setsA.value = setsWonA;
+        if (setsB) setsB.value = setsWonB;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tournamentSelect = document.getElementById('tournament');
         const stageSelect = document.getElementById('stage');
+        const isFinishedCheckbox = document.getElementById('is_finished');
+
+        restoreMatchFields();
+        restoreSetScores();
+        syncMatchFormatUI();
+
         if (stageSelect) {
             stageSelect.addEventListener('change', toggleRoundNumber);
-            toggleRoundNumber(); // Инициальное состояние
         }
-        
-        // Добавляем слушатель на выбор турнира
-        const tournamentSelect = document.getElementById('tournament');
+
         if (tournamentSelect) {
-            tournamentSelect.addEventListener('change', updateTeams);
-            // Инициализируем команды с повторными попытками (для надежности на сервере)
-            initializeTeamsWithRetry();
+            tournamentSelect.addEventListener('change', function() {
+                updateTeams();
+                updateScores();
+            });
         }
-        
-        // Добавляем слушатели на все поля партий
+
+        if (isFinishedCheckbox) {
+            isFinishedCheckbox.addEventListener('change', function() {
+                toggleScoreFields();
+                updateScores();
+            });
+        }
+
         document.querySelectorAll('.set-input').forEach(input => {
+            input.addEventListener('input', updateScores);
             input.addEventListener('change', updateScores);
-            input.addEventListener('keyup', updateScores);
         });
-        
-        // Инициальный расчет, если редактируем существующий матч
-        if (document.getElementById('is_finished').checked) {
+
+        toggleRoundNumber();
+        toggleScoreFields();
+
+        if (document.getElementById('is_finished') && document.getElementById('is_finished').checked) {
             updateScores();
         }
     });

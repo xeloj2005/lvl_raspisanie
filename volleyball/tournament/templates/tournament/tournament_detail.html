@@ -43,6 +43,15 @@
         </span>
         <span style="background: #e9ecef; padding: 5px 12px; border-radius: 15px; font-size: 14px;">
             {{ tournament.get_tournament_type_display }}
+            <div style="margin-top: 15px; padding: 14px 16px; background: #f8f9fa; border-radius: 8px; color: #555; font-size: 14px; line-height: 1.5;">
+    {% if tournament.tournament_type == 'SHORT' %}
+        <strong>Формат игр:</strong> до 2 побед в партиях, партии до 25 очков, 3-я партия — до 15.<br>
+        <strong>Очки:</strong> 2:0 — 3 очка, 2:1 — 2 очка, 1:2 — 1 очко, 0:2 — 0 очков.<br>
+        <strong>Ранжирование:</strong> победы → очки → личная встреча → соотношение партий → соотношение мячей.
+    {% else %}
+        <strong>Формат игр:</strong> до 3 побед в партиях, партии до 25 очков, 5-я партия — до 15.
+    {% endif %}
+</div>
         </span>
     </div>
 </div>
@@ -75,7 +84,14 @@
                     <th class="text-center" title="Поражения">П</th>
                     <th class="text-center" title="Выигр./Проигр. партии">С+/С-</th>
                     <th class="text-center" title="Выигр./Проигр. очки">О+/О-</th>
-                    <th class="text-center points-col" title="Турнирные очки (3 за 3:0 и 3:1, 2 за 3:2, 1 за 2:3, 0 за 1:3 и 0:3)"><strong>О</strong></th>
+                    {% if tournament.tournament_type == 'SHORT' %}
+    <th class="text-center" title="Соотношение партий">КП</th>
+    <th class="text-center" title="Соотношение мячей">КМ</th>
+{% endif %}
+                    <th class="text-center points-col"
+    title="{% if tournament.tournament_type == 'SHORT' %}Турнирные очки: 2:0 — 3, 2:1 — 2, 1:2 — 1, 0:2 — 0{% else %}Турнирные очки: 3 за 3:0 и 3:1, 2 за 3:2, 1 за 2:3, 0 за 1:3 и 0:3{% endif %}">
+    <strong>О</strong>
+</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,6 +104,14 @@
                     <td class="text-center">{{ standing.lost }}</td>
                     <td class="text-center">{{ standing.sets_won }}/{{ standing.sets_lost }}</td>
                     <td class="text-center">{{ standing.points_won }}/{{ standing.points_lost }}</td>
+                    {% if tournament.tournament_type == 'SHORT' %}
+    <td class="text-center">
+       {{ standing.sets_ratio_display }}
+    </td>
+    <td class="text-center">
+        {{ standing.balls_ratio_display }}
+    </td>
+{% endif %}
                     <td class="text-center points-col"><strong>{{ standing.tournament_points }}</strong></td>
                 </tr>
                 {% empty %}

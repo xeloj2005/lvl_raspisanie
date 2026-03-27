@@ -13,6 +13,29 @@ def is_staff(user):
     """Проверка что пользователь - администратор"""
     return user.is_staff
 
+def parse_set_scores(request, tournament, is_finished):
+    if not is_finished:
+        return None
+
+    max_sets = tournament.get_max_sets()
+    set_scores = []
+
+    for i in range(1, max_sets + 1):
+        score_a_str = request.POST.get(f'set-a-{i}') or request.POST.get(f'set_a_{i}')
+        score_b_str = request.POST.get(f'set-b-{i}') or request.POST.get(f'set_b_{i}')
+
+        if score_a_str or score_b_str:
+            try:
+                score_a = int(score_a_str or 0)
+                score_b = int(score_b_str or 0)
+            except (ValueError, TypeError):
+                continue
+
+            if score_a > 0 or score_b > 0:
+                set_scores.append({'a': score_a, 'b': score_b})
+
+    return set_scores or None
+
 
 @login_required
 @user_passes_test(is_staff)
@@ -442,7 +465,9 @@ def admin_tournament_create(request):
         playoff_teams = request.POST.get('playoff_teams')
         team_ids = request.POST.getlist('teams')
         order = request.POST.get('order', '0')
-
+        if tournament_type == 'SHORT':
+            has_playoff = False
+            playoff_teams = None
         errors = []
         if not name:
             errors.append('Название турнира обязательно')
@@ -503,7 +528,9 @@ def admin_tournament_edit(request, tournament_id):
         playoff_teams = request.POST.get('playoff_teams')
         team_ids = request.POST.getlist('teams')
         order = request.POST.get('order', '0')
-
+        if tournament_type == 'SHORT':
+            has_playoff = False
+            playoff_teams = None
         errors = []
         if not name:
             errors.append('Название турнира обязательно')
@@ -670,36 +697,9 @@ def admin_match_create(request):
                 venue = Venue.objects.get(id=venue_id) if venue_id else None
 
                 # Обрабатываем set_scores
-                set_scores = []
-                if is_finished:
-                    for i in range(1, 6):
-                        score_a_key = f'set-a-{i}'
-                        score_b_key = f'set-b-{i}'
-                        
-                        # Пытаемся получить значения с префиксом "set-"
-                        score_a_str = request.POST.get(f'set-a-{i}')
-                        score_b_str = request.POST.get(f'set-b-{i}')
-                        
-                        # Если не найдены, пытаемся старые названия
-                        if not score_a_str:
-                            score_a_str = request.POST.get(f'set_a_{i}')
-                        if not score_b_str:
-                            score_b_str = request.POST.get(f'set_b_{i}')
-                        
-                        if score_a_str or score_b_str:
-                            try:
-                                score_a = int(score_a_str or 0)
-                                score_b = int(score_b_str or 0)
-                                if score_a > 0 or score_b > 0:
-                                    set_scores.append({
-                                        'a': score_a,
-                                        'b': score_b
-                                    })
-                            except (ValueError, TypeError):
-                                pass
-                protocol_code = generate_unique_protocol_code(),
-                protocol_code_active = False,
-                match = Match.objects.create(
+                set_scores = parse_set_scores(request, tournament, is_finished)
+
+                match = Match(
                     tournament=tournament,
                     team_a=team_a,
                     team_b=team_b,
@@ -709,18 +709,20 @@ def admin_match_create(request):
                     is_finished=is_finished,
                     sets_a=int(sets_a) if sets_a else None,
                     sets_b=int(sets_b) if sets_b else None,
-                    set_scores=set_scores if set_scores else None,
+                    set_scores=set_scores,
                     protocol_code=generate_unique_protocol_code(),
-                    protocol_code_active=False,
+                    protocol_code_active=True,
                 )
 
                 if date_str:
                     from datetime import datetime
                     try:
                         match.date_time = datetime.fromisoformat(date_str)
-                        match.save()
                     except ValueError:
                         pass
+
+                match.full_clean()
+                match.save()
 
                 # Проверяем, нужно ли генерировать плэйофф
                 if is_finished:
@@ -786,24 +788,7 @@ def admin_match_edit(request, match_id):
                 team_b = Team.objects.get(id=team_b_id)
                 venue = Venue.objects.get(id=venue_id) if venue_id else None
 
-                # Обрабатываем set_scores
-                set_scores = []
-                if is_finished:
-                    for i in range(1, 6):
-                        score_a_str = request.POST.get(f'set-a-{i}')
-                        score_b_str = request.POST.get(f'set-b-{i}')
-                        
-                        if score_a_str or score_b_str:
-                            try:
-                                score_a = int(score_a_str or 0)
-                                score_b = int(score_b_str or 0)
-                                if score_a > 0 or score_b > 0:
-                                    set_scores.append({
-                                        'a': score_a,
-                                        'b': score_b
-                                    })
-                            except (ValueError, TypeError):
-                                pass
+                set_scores = parse_set_scores(request, tournament, is_finished)
 
                 match.tournament = tournament
                 match.team_a = team_a
@@ -814,7 +799,7 @@ def admin_match_edit(request, match_id):
                 match.is_finished = is_finished
                 match.sets_a = int(sets_a) if sets_a else None
                 match.sets_b = int(sets_b) if sets_b else None
-                match.set_scores = set_scores if set_scores else None
+                match.set_scores = set_scores
 
                 if date_str:
                     from datetime import datetime
@@ -823,6 +808,7 @@ def admin_match_edit(request, match_id):
                     except ValueError:
                         pass
 
+                match.full_clean()
                 match.save()
                 
                 # Проверяем, нужно ли генерировать плэйофф

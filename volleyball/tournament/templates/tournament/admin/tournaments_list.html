@@ -76,7 +76,13 @@
                         {{ tournament.get_gender_display }}
                     </span>
                 </td>
-                <td>{{ tournament.get_tournament_type_display }}</td>
+                <td>
+    {% if tournament.tournament_type == 'SHORT' %}
+        <span class="badge" style="background: #fff3cd; color: #856404;">Короткий</span>
+    {% else %}
+        <span class="badge" style="background: #d1ecf1; color: #0c5460;">Лига</span>
+    {% endif %}
+</td>
                 <td class="text-center">{{ tournament.teams.count }}</td>
                 <td class="text-center">
                     <a href="{% url 'tournament:admin_tournament_edit' tournament.id %}" class="btn-sm btn-edit" onclick="event.stopPropagation()">✏️</a>

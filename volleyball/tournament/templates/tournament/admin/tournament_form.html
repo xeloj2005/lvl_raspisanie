@@ -45,11 +45,16 @@
             </div>
             
             <div class="form-group">
-                <label for="tournament_type">Тип турнира *</label>
-                <select id="tournament_type" name="tournament_type" required>
-                    <option value="LEAGUE" {% if tournament and tournament.tournament_type == 'LEAGUE' %}selected{% endif %}>Лига (круговая система)</option>
-                </select>
-            </div>
+    <label for="tournament_type">Тип турнира *</label>
+    <select id="tournament_type" name="tournament_type" required>
+        <option value="LEAGUE" {% if not tournament or tournament.tournament_type == 'LEAGUE' %}selected{% endif %}>
+            Лига (до 3 побед в партиях)
+        </option>
+        <option value="SHORT" {% if tournament and tournament.tournament_type == 'SHORT' %}selected{% endif %}>
+            Короткий турнир (до 2 побед в партиях)
+        </option>
+    </select>
+</div>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -68,7 +73,7 @@
             </div>
         </div>
         
-        <div class="form-group" style="padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+        <div class="form-group" id="playoff_block" style="padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea; display: {% if tournament and tournament.tournament_type == 'SHORT' %}none{% else %}block{% endif %};">
             <label>
                 <input type="checkbox" name="has_playoff" {% if tournament and tournament.has_playoff %}checked{% endif %} id="has_playoff">
                 <strong>Включить плейофф</strong>
@@ -268,9 +273,60 @@
 </style>
 
 <script>
-    // Показать/скрыть опции плейофф
-    document.getElementById('has_playoff').addEventListener('change', function() {
-        document.getElementById('playoff_options').style.display = this.checked ? 'block' : 'none';
+    function syncTournamentTypeForm() {
+        const tournamentType = document.getElementById('tournament_type');
+        const playoffBlock = document.getElementById('playoff_block');
+        const playoffCheckbox = document.getElementById('has_playoff');
+        const playoffOptions = document.getElementById('playoff_options');
+        const playoffTeams = document.getElementById('playoff_teams');
+        const hint = document.getElementById('tournament_type_hint');
+
+        if (!tournamentType) return;
+
+        const isShort = tournamentType.value === 'SHORT';
+
+        if (playoffBlock) {
+            playoffBlock.style.display = isShort ? 'none' : 'block';
+        }
+
+        if (isShort) {
+            if (playoffCheckbox) playoffCheckbox.checked = false;
+            if (playoffOptions) playoffOptions.style.display = 'none';
+            if (playoffTeams) playoffTeams.value = '';
+            if (hint) {
+                hint.textContent = 'Формат: до 2 побед в партиях. Партии до 25 очков, 3-я партия — до 15. Плей-офф недоступен.';
+            }
+        } else {
+            if (playoffOptions) {
+                playoffOptions.style.display = playoffCheckbox && playoffCheckbox.checked ? 'block' : 'none';
+            }
+            if (hint) {
+                hint.textContent = 'Формат: до 3 побед в партиях. Партии до 25 очков, 5-я партия — до 15.';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const hasPlayoff = document.getElementById('has_playoff');
+        const tournamentType = document.getElementById('tournament_type');
+
+        if (hasPlayoff) {
+            hasPlayoff.addEventListener('change', function() {
+                const tournamentTypeValue = document.getElementById('tournament_type').value;
+                if (tournamentTypeValue === 'SHORT') {
+                    this.checked = false;
+                    document.getElementById('playoff_options').style.display = 'none';
+                    return;
+                }
+                document.getElementById('playoff_options').style.display = this.checked ? 'block' : 'none';
+            });
+        }
+
+        if (tournamentType) {
+            tournamentType.addEventListener('change', syncTournamentTypeForm);
+        }
+
+        syncTournamentTypeForm();
     });
 </script>
 {% endblock %}

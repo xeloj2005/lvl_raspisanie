@@ -72,6 +72,7 @@
                 <th style="width: 80px;">vs</th>
                 <th>Команда Б</th>
                 <th style="width: 100px;">Счет</th>
+                <th style="width: 90px;">Формат</th>
                 <th style="width: 100px;">Дата/Время</th>
                 <th style="width: 80px;">Место</th>
                 <th style="width: 80px;">Этап</th>
@@ -94,7 +95,15 @@
                     {% else %}
                         <span style="color: #999;">—</span>
                     {% endif %}
+
                 </td>
+                <td class="text-center" style="font-size: 13px;">
+    {% if match.tournament.tournament_type == 'SHORT' %}
+        <span class="badge" style="background: #fff3cd; color: #856404;">Короткий</span>
+    {% else %}
+        <span class="badge" style="background: #d1ecf1; color: #0c5460;">Лига</span>
+    {% endif %}
+</td>
                 <td class="text-center" style="font-size: 13px;">
                     {% if match.date_time %}
                         {{ match.date_time|date:"d.m.Y H:i" }}
@@ -126,7 +135,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="text-center" style="padding: 40px; color: #999;">
+                <td colspan="11" class="text-center" style="padding: 40px; color: #999;">
                     {% if search or tournament_filter or stage_filter or finished_filter %}
                         Матчи не найдены. Попробуйте изменить параметры поиска.
                     {% else %}

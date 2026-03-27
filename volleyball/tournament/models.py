@@ -82,7 +82,8 @@ class Tournament(models.Model):
     ]
 
     TOURNAMENT_TYPE_CHOICES = [
-        ('LEAGUE', 'Лига (круговая система)'),
+        ('LEAGUE', 'Лига (круговая система, до 3 побед в партиях)'),
+        ('SHORT', 'Короткий турнир (до 2 побед в партиях)'),
     ]
 
     name = models.CharField('Название', max_length=200)
@@ -131,6 +132,19 @@ class Tournament(models.Model):
     def clean(self):
         if self.has_playoff and not self.playoff_teams:
             raise ValidationError('Укажите количество команд в плейофф')
+
+        if self.is_short_format and self.has_playoff:
+            raise ValidationError('Для короткого турнира плейофф не поддерживается')
+
+    @property
+    def is_short_format(self):
+        return self.tournament_type == 'SHORT'
+
+    def get_max_sets(self):
+        return 3 if self.is_short_format else 5
+
+    def get_sets_to_win(self):
+        return 2 if self.is_short_format else 3
 
 
 class Match(models.Model):
@@ -234,6 +248,106 @@ class Match(models.Model):
             raise ValidationError(f'Команда {self.team_a} не добавлена в выбранный турнир')
         if self.team_b_id and not self.tournament.teams.filter(pk=self.team_b_id).exists():
             raise ValidationError(f'Команда {self.team_b} не добавлена в выбранный турнир')
+        if self.is_finished:
+            if self.sets_a is None or self.sets_b is None:
+                raise ValidationError('Для завершенного матча нужно указать счет по партиям')
+
+            sets_to_win = self.get_sets_to_win()
+            max_sets = self.get_max_sets()
+
+            if self.sets_a < 0 or self.sets_b < 0:
+                raise ValidationError('Счет по партиям не может быть отрицательным')
+
+            if self.sets_a > sets_to_win or self.sets_b > sets_to_win:
+                raise ValidationError('Некорректный счет по партиям для формата турнира')
+
+            if self.sets_a != sets_to_win and self.sets_b != sets_to_win:
+                raise ValidationError('В завершенном матче одна из команд должна набрать победное число партий')
+
+            if self.sets_a + self.sets_b > max_sets:
+                raise ValidationError('Слишком много сыгранных партий для формата турнира')
+
+            if self.set_scores:
+                if len(self.set_scores) != self.sets_a + self.sets_b:
+                    raise ValidationError('Количество партий в детализации не совпадает с итоговым счетом')
+
+                for idx, set_score in enumerate(self.set_scores, start=1):
+                    a = set_score.get('a')
+                    b = set_score.get('b')
+
+                    if a is None or b is None:
+                        raise ValidationError(f'В партии {idx} не заполнен счет')
+
+                    if a < 0 or b < 0:
+                        raise ValidationError(f'В партии {idx} счет не может быть отрицательным')
+
+                    if a == b:
+                        raise ValidationError(f'В партии {idx} не может быть ничьей')
+
+                    target = 15 if (self.tournament.is_short_format and idx == 3) or (not self.tournament.is_short_format and idx == 5) else 25
+
+                    winner = max(a, b)
+                    loser = min(a, b)
+
+                    if winner < target:
+                        raise ValidationError(f'В партии {idx} победитель не добрал до {target} очков')
+
+                    if winner - loser < 2:
+                        raise ValidationError(f'В партии {idx} разница должна быть минимум 2 очка')
+
+    def get_max_sets(self):
+        return self.tournament.get_max_sets()
+
+    def get_sets_to_win(self):
+        return self.tournament.get_sets_to_win()
+
+    def get_match_points(self, team):
+        """
+        Очки за матч для указанной команды.
+        LEAGUE:
+            3:0 / 3:1 -> 3
+            3:2 -> 2
+            2:3 -> 1
+            иначе 0
+        SHORT:
+            2:0 -> 3
+            2:1 -> 2
+            1:2 -> 1
+            0:2 -> 0
+        """
+        if not self.is_finished or self.sets_a is None or self.sets_b is None:
+            return 0
+
+        if team == self.team_a:
+            won_sets, lost_sets = self.sets_a, self.sets_b
+        elif team == self.team_b:
+            won_sets, lost_sets = self.sets_b, self.sets_a
+        else:
+            return 0
+
+        if self.tournament.is_short_format:
+            if won_sets == 2 and lost_sets == 0:
+                return 3
+            if won_sets == 2 and lost_sets == 1:
+                return 2
+            if won_sets == 1 and lost_sets == 2:
+                return 1
+            return 0
+
+        if won_sets == 3 and lost_sets in [0, 1]:
+            return 3
+        if won_sets == 3 and lost_sets == 2:
+            return 2
+        if won_sets == 2 and lost_sets == 3:
+            return 1
+        return 0
+
+    def get_set_ratio(self):
+        if not self.is_finished or self.sets_a is None or self.sets_b is None:
+            return None
+        if self.sets_b == 0:
+            return float('inf')
+        return self.sets_a / self.sets_b
 
 
 class StandingsCache(models.Model):
