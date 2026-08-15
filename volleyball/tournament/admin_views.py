@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.db.models import Q, Count
 from .models import Team, Venue, TournamentGroup, Tournament, Match, Player, TournamentTeamRoster, TournamentRosterPlayer, Referee, generate_unique_protocol_code
 from .views import check_and_generate_playoff
-from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.urls import reverse
+
+User = get_user_model()
 
 def is_staff(user):
     """Проверка что пользователь - администратор"""
@@ -50,11 +51,24 @@ def admin_dashboard(request):
         'rosters_count': TournamentTeamRoster.objects.count(),
         'players_count': Player.objects.count(),
         'referees_count': Referee.objects.count(),
+        'users_count': User.objects.count(),
         'active_nav': 'dashboard',
         'back_href': None,
         'back_title': None,
     }
     return render(request, 'tournament/admin/dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_staff)
+def admin_users_list(request):
+    users = User.objects.order_by('full_name', 'email')
+    return render(request, 'tournament/admin/users_list.html', {
+        'users': users,
+        'active_nav': 'users',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+    })
 
 
 # ============= КОМАНДЫ =============

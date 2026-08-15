@@ -54,6 +54,7 @@ urlpatterns = [
     path('admin-panel/rosters/<int:pk>/delete/', admin_views.roster_delete, name='admin_roster_delete'),
     path('admin-panel/rosters/<int:pk>/players/add/', admin_views.roster_player_add, name='admin_roster_player_add'),
     path('admin-panel/rosters/<int:roster_pk>/players/<int:player_pk>/remove/', admin_views.roster_player_remove, name='admin_roster_player_remove'),
+    path('admin-panel/users/', admin_views.admin_users_list, name='admin_users_list'),
     #судья
     path('referee/login/', admin_views.referee_login, name='referee_login'),
     path('referee/logout/', admin_views.referee_logout, name='referee_logout'),

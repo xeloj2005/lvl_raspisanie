@@ -1,7 +1,7 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
 import random
 
 def generate_unique_protocol_code():
@@ -437,7 +437,7 @@ class TournamentRosterPlayer(models.Model):
 class Referee(models.Model):
     """Судья"""
     user = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='referee_profile',
         verbose_name='Пользователь'

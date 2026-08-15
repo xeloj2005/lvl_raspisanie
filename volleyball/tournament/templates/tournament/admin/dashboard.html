@@ -93,6 +93,14 @@
         <p>Управление судьями</p>
     </div>
 </a>
+    <a href="{% url 'tournament:admin_users_list' %}" style="text-decoration: none;">
+    <div class="admin-card">
+        <div class="admin-card-icon">👤</div>
+        <h3>Пользователи</h3>
+        <div class="admin-card-count">{{ users_count }}</div>
+        <p>Просмотр аккаунтов</p>
+    </div>
+</a>
 </div>
 
 <style>
