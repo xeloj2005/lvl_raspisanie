@@ -1,5 +1,6 @@
 from django.urls import path
-from . import views, admin_views
+from . import views
+from . import admin_views
 
 app_name = 'tournament'
 
@@ -20,6 +21,9 @@ urlpatterns = [
     path('admin-panel/teams/create/', admin_views.admin_team_create, name='admin_team_create'),
     path('admin-panel/teams/<int:team_id>/edit/', admin_views.admin_team_edit, name='admin_team_edit'),
     path('admin-panel/teams/<int:team_id>/delete/', admin_views.admin_team_delete, name='admin_team_delete'),
+    path('admin-panel/teams/<int:team_id>/members/', admin_views.admin_team_members, name='admin_team_members'),
+    path('admin-panel/teams/<int:team_id>/members/<int:member_id>/edit/', admin_views.admin_team_member_edit, name='admin_team_member_edit'),
+    path('admin-panel/teams/<int:team_id>/members/<int:member_id>/remove/', admin_views.admin_team_member_remove, name='admin_team_member_remove'),
 
     # Места проведения
     path('admin-panel/venues/', admin_views.admin_venues_list, name='admin_venues_list'),
@@ -48,13 +52,13 @@ urlpatterns = [
     path('admin-panel/players/create/', admin_views.player_create, name='admin_player_create'),
     path('admin-panel/players/<int:pk>/edit/', admin_views.player_edit, name='admin_player_edit'),
     path('admin-panel/players/<int:pk>/delete/', admin_views.player_delete, name='admin_player_delete'),
+    path('admin-panel/users/', admin_views.admin_users_list, name='admin_users_list'),
     path('admin-panel/rosters/', admin_views.rosters_list, name='admin_rosters_list'),
     path('admin-panel/rosters/create/', admin_views.roster_create, name='admin_roster_create'),
     path('admin-panel/rosters/<int:pk>/edit/', admin_views.roster_edit, name='admin_roster_edit'),
     path('admin-panel/rosters/<int:pk>/delete/', admin_views.roster_delete, name='admin_roster_delete'),
     path('admin-panel/rosters/<int:pk>/players/add/', admin_views.roster_player_add, name='admin_roster_player_add'),
     path('admin-panel/rosters/<int:roster_pk>/players/<int:player_pk>/remove/', admin_views.roster_player_remove, name='admin_roster_player_remove'),
-    path('admin-panel/users/', admin_views.admin_users_list, name='admin_users_list'),
     #судья
     path('referee/login/', admin_views.referee_login, name='referee_login'),
     path('referee/logout/', admin_views.referee_logout, name='referee_logout'),
