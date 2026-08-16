@@ -1,0 +1,245 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+<div class="users-page">
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">Команда</span>
+            <h2>Пользователи</h2>
+        </div>
+    </div>
+
+    <form method="get" class="search-form">
+        <input type="text" name="search" value="{{ search }}" placeholder="Поиск по имени или email">
+        <button type="submit">Поиск</button>
+        {% if search %}
+            <a href="{% url 'accounts:users_list' %}">Сбросить</a>
+        {% endif %}
+    </form>
+
+    {% if users %}
+        <div class="users-list">
+            {% for user in users %}
+                <a href="{% url 'accounts:user_detail' user.id %}" class="user-row">
+                    <div class="user-avatar">
+                        {% if user.photo %}
+                            <img src="{{ user.photo.url }}" alt="{{ user.full_name|default:user.email }}">
+                        {% else %}
+                            <div class="user-avatar-fallback">{{ user.initials }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-topline">
+                            <h3>{{ user.full_name|default:'Без имени' }}</h3>
+                            {% if user.is_active %}
+                                <span class="status status-active">Активен</span>
+                            {% else %}
+                                <span class="status status-banned">Заблокирован</span>
+                            {% endif %}
+                        </div>
+                        <p>{{ user.email }}</p>
+                        <div class="user-tags">
+                            {% if user.phone %}<span>{{ user.phone }}</span>{% endif %}
+                            {% if user.rank %}<span>{{ user.rank }}</span>{% endif %}
+                            {% if not user.phone and not user.rank %}<span>Профиль</span>{% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">Пользователи не найдены.</div>
+    {% endif %}
+</div>
+
+<style>
+    .users-page {
+        padding: 10px 0 30px;
+    }
+
+    .page-header {
+        margin-bottom: 18px;
+    }
+
+    .eyebrow {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #3b72ff;
+        margin-bottom: 8px;
+    }
+
+    .page-header h2 {
+        margin: 0;
+        font-size: 32px;
+        color: #1f2d3d;
+    }
+
+    .search-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        background: white;
+        border: 1px solid rgba(135, 206, 235, 0.25);
+        border-radius: 16px;
+        padding: 14px 16px;
+    }
+
+    .search-form input {
+        flex: 1;
+        min-width: 220px;
+        border: 1px solid #dfe7f1;
+        border-radius: 10px;
+        padding: 11px 12px;
+        font-size: 15px;
+    }
+
+    .search-form button,
+    .search-form a {
+        border-radius: 10px;
+        padding: 11px 16px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .search-form button {
+        border: none;
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #1f2d3d;
+        cursor: pointer;
+    }
+
+    .search-form a {
+        background: #eef2ff;
+        color: #3b72ff;
+    }
+
+    .users-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: white;
+        border: 1px solid rgba(135, 206, 235, 0.25);
+        border-radius: 18px;
+        padding: 14px 16px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .user-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 28px rgba(59, 114, 255, 0.08);
+    }
+
+    .user-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: #eef6ff;
+    }
+
+    .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .user-avatar-fallback {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 800;
+        color: #1f2d3d;
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+    }
+
+    .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+
+    .user-topline h3 {
+        margin: 0;
+        color: #1f2d3d;
+        font-size: 22px;
+    }
+
+    .status {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-banned {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .user-info p {
+        margin: 0 0 10px;
+        color: #475569;
+        word-break: break-word;
+    }
+
+    .user-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .user-tags span {
+        display: inline-flex;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 10px;
+    }
+
+    .empty-state {
+        background: #f8fafc;
+        color: #667085;
+        border: 1px dashed #d5dff0;
+        border-radius: 14px;
+        padding: 30px;
+        text-align: center;
+    }
+</style>
+{% endblock %}

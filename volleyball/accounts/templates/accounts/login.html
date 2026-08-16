@@ -1,0 +1,183 @@
+{% extends 'tournament/base.html' %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="badge">Вход</span>
+            <h2>Добро пожаловать</h2>
+            <p>Войдите в свой аккаунт, чтобы продолжить</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="form-alert form-alert-{{ message.tags|default:'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="field-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" required placeholder="you@example.com">
+            </div>
+
+            <div class="field-group">
+                <label for="password">Пароль</label>
+                <input type="password" name="password" id="password" required placeholder="Введите пароль">
+            </div>
+
+            <button type="submit" class="submit-btn">Войти</button>
+
+            <div class="auth-footer">
+                Нет аккаунта? <a href="{% url 'accounts:register' %}">Зарегистрироваться</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .auth-shell {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 520px;
+        background: linear-gradient(180deg, #ffffff 0%, #f4fbff 100%);
+        border: 1px solid rgba(135, 206, 235, 0.4);
+        border-radius: 20px;
+        box-shadow: 0 20px 45px rgba(59, 114, 255, 0.12);
+        padding: 32px;
+    }
+
+    .auth-header {
+        margin-bottom: 24px;
+        text-align: center;
+    }
+
+    .badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #1f2d3d;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+    }
+
+    .auth-header h2 {
+        margin: 0;
+        font-size: 32px;
+        color: #1c2a38;
+    }
+
+    .auth-header p {
+        margin-top: 8px;
+        color: #5f6b7a;
+        font-size: 15px;
+    }
+
+    .auth-form {
+        display: grid;
+        gap: 18px;
+    }
+
+    .field-group {
+        display: grid;
+        gap: 8px;
+    }
+
+    .field-group label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .field-group input {
+        width: 100%;
+        border: 1px solid #dfe7f1;
+        border-radius: 12px;
+        background: white;
+        padding: 12px 14px;
+        font-size: 15px;
+        color: #1f2937;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .field-group input:focus {
+        outline: none;
+        border-color: #87CEEB;
+        box-shadow: 0 0 0 4px rgba(135, 206, 235, 0.15);
+    }
+
+    .form-alert {
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    .form-alert-error {
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        color: #b42318;
+    }
+
+    .form-alert-success {
+        background: #edfdf3;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+
+    .form-alert-info {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .submit-btn {
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #87CEEB 0%, #FFD700 100%);
+        color: #1f2d3d;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 14px 20px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 8px 18px rgba(135, 206, 235, 0.28);
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 8px;
+        color: #5f6b7a;
+        font-size: 14px;
+    }
+
+    .auth-footer a {
+        color: #3b72ff;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

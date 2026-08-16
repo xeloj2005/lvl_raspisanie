@@ -1,13 +1,14 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import Team, Venue, TournamentGroup, Tournament, Match, Player, TournamentTeamRoster, TournamentRosterPlayer, Referee, generate_unique_protocol_code
+from .models import Team, Venue, TournamentGroup, Tournament, Match, TournamentTeamRoster, TournamentRosterPlayer, Player, Referee, generate_unique_protocol_code
 from .views import check_and_generate_playoff
-from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.urls import reverse
+
+User = get_user_model()
 
 def is_staff(user):
     """Проверка что пользователь - администратор"""
@@ -48,13 +49,26 @@ def admin_dashboard(request):
         'tournaments_count': Tournament.objects.count(),
         'matches_count': Match.objects.count(),
         'rosters_count': TournamentTeamRoster.objects.count(),
-        'players_count': Player.objects.count(),
+        'players_count': TournamentRosterPlayer.objects.count(),
         'referees_count': Referee.objects.count(),
+        'users_count': User.objects.count(),
         'active_nav': 'dashboard',
         'back_href': None,
         'back_title': None,
     }
     return render(request, 'tournament/admin/dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_staff)
+def admin_users_list(request):
+    users = User.objects.order_by('full_name', 'email')
+    return render(request, 'tournament/admin/users_list.html', {
+        'users': users,
+        'active_nav': 'users',
+        'back_href': reverse('tournament:admin_dashboard'),
+        'back_title': 'Панель администратора',
+    })
 
 
 # ============= КОМАНДЫ =============
@@ -167,6 +181,129 @@ def admin_team_delete(request, team_id):
     return render(request, 'tournament/admin/team_confirm_delete.html', context)
 
 
+
+
+# ============= УПРАВЛЕНИЕ СОСТАВАМИ КОМАНД =============
+
+@login_required
+@user_passes_test(is_staff)
+def admin_team_members(request, team_id):
+    """Показать и добавить участников команды"""
+    team = get_object_or_404(Team, id=team_id)
+    search = request.GET.get('search','').strip()
+
+    memberships = team.memberships.select_related('user').order_by('-joined_at')
+    if search:
+        memberships = memberships.filter(
+            Q(user__full_name__icontains=search) | Q(user__email__icontains=search)
+        )
+
+    if request.method == 'POST':
+        # Adding a member
+        user_id = request.POST.get('user_id')
+        email = request.POST.get('email','').strip().lower()
+        roles = request.POST.getlist('roles') or ['MEMBER']
+
+        user = None
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                user = None
+        elif email:
+            # fuzzy search like public manager: exact email first, then fallback to contains in email/full_name
+            if '@' in email:
+                try:
+                    user = User.objects.get(email__iexact=email)
+                except User.DoesNotExist:
+                    matches = User.objects.filter(Q(email__icontains=email) | Q(full_name__icontains=email)).order_by('full_name')[:6]
+                    if matches.count() == 1:
+                        user = matches.first()
+                    elif matches.count() > 1:
+                        msgs = ', '.join([f"{u.full_name} <{u.email}>" for u in matches])
+                        messages.error(request, f'Найдено несколько пользователей: {msgs}. Уточните email.')
+                        return redirect('tournament:admin_team_members', team_id=team.id)
+                    else:
+                        messages.error(request, 'Пользователь с таким email не найден')
+                        return redirect('tournament:admin_team_members', team_id=team.id)
+            else:
+                matches = User.objects.filter(Q(full_name__icontains=email) | Q(email__icontains=email)).order_by('full_name')[:6]
+                if matches.count() == 1:
+                    user = matches.first()
+                elif matches.count() > 1:
+                    msgs = ', '.join([f"{u.full_name} <{u.email}>" for u in matches])
+                    messages.error(request, f'Найдено несколько пользователей: {msgs}. Уточните ввод (полное имя или email).')
+                    return redirect('tournament:admin_team_members', team_id=team.id)
+                else:
+                    messages.error(request, 'Пользователь не найден. Укажите точный email или полное имя.')
+                    return redirect('tournament:admin_team_members', team_id=team.id)
+
+        if not user:
+            messages.error(request, 'Пользователь не найден. Укажите существующий email или выберите пользователя.')
+            return redirect('tournament:admin_team_members', team_id=team.id)
+
+        membership, created = team.memberships.get_or_create(user=user, defaults={'roles': roles})
+        if not created:
+            # merge roles
+            current = set(membership.roles or [])
+            current.update(roles)
+            membership.roles = list(current)
+            membership.is_active = True
+            membership.save(update_fields=['roles','is_active'])
+            messages.info(request, 'Роли обновлены для существующего участника')
+        else:
+            membership.roles = roles
+            membership.save()
+            messages.success(request, 'Пользователь добавлен в команду')
+
+        return redirect('tournament:admin_team_members', team_id=team.id)
+
+    users_qs = User.objects.order_by('full_name')[:50]
+
+    return render(request, 'tournament/admin/team_members.html', {
+        'team': team,
+        'memberships': memberships,
+        'users': users_qs,
+        'search': search,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_teams_list'),
+        'back_title': 'Назад к списку команд',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def admin_team_member_edit(request, team_id, membership_id):
+    team = get_object_or_404(Team, id=team_id)
+    membership = get_object_or_404(team.memberships.model, id=membership_id, team=team)
+
+    if request.method == 'POST':
+        roles = request.POST.getlist('roles') or []
+        is_active = request.POST.get('is_active') == 'on'
+        membership.roles = roles
+        membership.is_active = is_active
+        membership.save(update_fields=['roles','is_active'])
+        messages.success(request, 'Данные участника обновлены')
+        return redirect('tournament:admin_team_members', team_id=team.id)
+
+    return render(request, 'tournament/admin/team_member_form.html', {
+        'team': team,
+        'membership': membership,
+        'active_nav': 'teams',
+        'back_href': reverse('tournament:admin_team_members', args=[team.id]),
+        'back_title': 'Назад к составу команды',
+    })
+
+
+@login_required
+@user_passes_test(is_staff)
+def admin_team_member_remove(request, team_id, membership_id):
+    team = get_object_or_404(Team, id=team_id)
+    membership = get_object_or_404(team.memberships.model, id=membership_id, team=team)
+    if request.method == 'POST':
+        membership.delete()
+        messages.success(request, 'Участник удалён из команды')
+    return redirect('tournament:admin_team_members', team_id=team.id)
 # ============= МЕСТА ПРОВЕДЕНИЯ =============
 
 @login_required
@@ -855,23 +992,8 @@ def admin_match_delete(request, match_id):
 @login_required
 @user_passes_test(is_staff)
 def players_list(request):
-    search = request.GET.get('search', '').strip()
-
-    players = Player.objects.all().order_by('full_name')
-
-    if search:
-        players = players.filter(
-            Q(full_name__icontains=search) |
-            Q(rank__icontains=search)
-        )
-
-    return render(request, 'tournament/admin/players_list.html', {
-        'players': players,
-        'search': search,
-        'active_nav': 'players',
-        'back_href': reverse('tournament:admin_dashboard'),
-        'back_title': 'Панель администратора',
-    })
+    # Players are now represented by User accounts. Redirect to users management.
+    return redirect('tournament:admin_users_list')
 
 
 @login_required
@@ -948,37 +1070,38 @@ def player_delete(request, pk):
 
 @login_required
 @user_passes_test(is_staff)
-def rosters_list(request):
-    rosters = TournamentTeamRoster.objects.select_related(
-        'tournament', 'team'
-    ).annotate(
-        players_count=Count('roster_players')
-    ).order_by('tournament__name', 'team__name')
+def rosters_list(request, team_id=None):
+    """Список составов. Если team_id передан — показываем составы только для команды."""
+    rosters = TournamentTeamRoster.objects.select_related('tournament', 'team')
+    if team_id:
+        rosters = rosters.filter(team_id=team_id)
+    rosters = rosters.annotate(players_count=Count('roster_players')).order_by('tournament__name', 'team__name')
 
     return render(request, 'tournament/admin/rosters_list.html', {
         'rosters': rosters,
         'active_nav': 'rosters',
         'back_href': reverse('tournament:admin_dashboard'),
         'back_title': 'Панель администратора',
+        'team_id': team_id,
     })
 
 
 @login_required
 @user_passes_test(is_staff)
-def roster_create(request):
+def roster_create(request, team_id=None):
     tournaments = Tournament.objects.prefetch_related('teams').order_by('name')
 
     if request.method == 'POST':
         tournament_id = request.POST.get('tournament')
-        team_id = request.POST.get('team')
+        team_id_post = request.POST.get('team') or team_id
 
         if not tournament_id:
             messages.error(request, 'Выберите турнир')
-        elif not team_id:
+        elif not team_id_post:
             messages.error(request, 'Выберите команду')
         else:
             tournament = get_object_or_404(Tournament, pk=tournament_id)
-            team = get_object_or_404(Team, pk=team_id)
+            team = get_object_or_404(Team, pk=team_id_post)
 
             if not tournament.teams.filter(pk=team.pk).exists():
                 messages.error(request, 'Эта команда не добавлена в выбранный турнир')
@@ -1000,6 +1123,7 @@ def roster_create(request):
         'active_nav': 'rosters',
         'back_href': reverse('tournament:admin_rosters_list'),
         'back_title': 'Назад к списку составов',
+        'team_id': team_id,
     })
 
 
@@ -1010,6 +1134,8 @@ def roster_edit(request, pk):
         TournamentTeamRoster.objects.select_related('tournament', 'team'),
         pk=pk
     )
+
+    # if team_id comes from URL, ensure it matches roster.team_id
 
     roster_players = TournamentRosterPlayer.objects.select_related('player').filter(
         roster=roster
@@ -1041,7 +1167,7 @@ def roster_edit(request, pk):
 
 @login_required
 @user_passes_test(is_staff)
-def roster_delete(request, pk):
+def roster_delete(request, team_id, pk):
     roster = get_object_or_404(
         TournamentTeamRoster.objects.select_related('tournament', 'team'),
         pk=pk
@@ -1062,7 +1188,7 @@ def roster_delete(request, pk):
 
 @login_required
 @user_passes_test(is_staff)
-def roster_player_add(request, pk):
+def roster_player_add(request, team_id, pk):
     roster = get_object_or_404(TournamentTeamRoster, pk=pk)
 
     if request.method == 'POST':
@@ -1110,6 +1236,62 @@ def roster_player_remove(request, roster_pk, player_pk):
         messages.success(request, 'Игрок удалён из состава')
 
     return redirect('tournament:admin_roster_edit', pk=roster_pk)
+
+# Redirect helpers for backward-compatible old roster URLs -> new team-scoped URLs
+@login_required
+@user_passes_test(is_staff)
+def admin_rosters_redirect(request):
+    # If a team parameter is present in GET, prefer it; otherwise redirect to admin teams list
+    team_id = request.GET.get('team')
+    if team_id:
+        return redirect('tournament:admin_rosters_list')
+    return redirect('tournament:admin_teams_list')
+
+@login_required
+@user_passes_test(is_staff)
+def admin_roster_create_redirect(request):
+    team_id = request.GET.get('team')
+    if team_id:
+        return redirect('tournament:admin_roster_create')
+    return redirect('tournament:admin_rosters_list')
+
+@login_required
+@user_passes_test(is_staff)
+def admin_roster_edit_redirect(request, pk):
+    # try to find roster and redirect to edit
+    try:
+        roster = TournamentTeamRoster.objects.get(pk=pk)
+        return redirect('tournament:admin_roster_edit', pk=pk)
+    except TournamentTeamRoster.DoesNotExist:
+        return redirect('tournament:admin_rosters_list')
+
+@login_required
+@user_passes_test(is_staff)
+def admin_roster_delete_redirect(request, pk):
+    try:
+        roster = TournamentTeamRoster.objects.get(pk=pk)
+        return redirect('tournament:admin_roster_delete', pk=pk)
+    except TournamentTeamRoster.DoesNotExist:
+        return redirect('tournament:admin_rosters_list')
+
+@login_required
+@user_passes_test(is_staff)
+def admin_roster_player_add_redirect(request, pk):
+    try:
+        roster = TournamentTeamRoster.objects.get(pk=pk)
+        return redirect('tournament:admin_roster_edit', pk=pk)
+    except TournamentTeamRoster.DoesNotExist:
+        return redirect('tournament:admin_rosters_list')
+
+@login_required
+@user_passes_test(is_staff)
+def admin_roster_player_remove_redirect(request, roster_pk, player_pk):
+    try:
+        roster = TournamentTeamRoster.objects.get(pk=roster_pk)
+        return redirect('tournament:admin_roster_edit', pk=roster_pk)
+    except TournamentTeamRoster.DoesNotExist:
+        return redirect('tournament:admin_rosters_list')
+
 
 @login_required
 @user_passes_test(is_staff)

@@ -4,6 +4,7 @@ from .models import TournamentGroup, Tournament, Match, Team
 from collections import defaultdict
 from django.contrib import messages
 from functools import cmp_to_key
+from django.contrib.auth import get_user_model
 
 def format_ratio(value):
     if value is None:
@@ -59,7 +60,12 @@ def index(request):
             'referee': referee,
         })
     groups = TournamentGroup.objects.prefetch_related('tournaments').all()
-    return render(request, 'tournament/index.html', {'groups': groups})
+
+    # Use project users as players now — show a short list on the homepage
+    User = get_user_model()
+    users = User.objects.filter(is_active=True).order_by('full_name')[:12]
+
+    return render(request, 'tournament/index.html', {'groups': groups, 'users': users})
 
 
 def tournament_detail(request, tournament_id):
@@ -416,7 +422,9 @@ def protocol_code_entry(request):
                 'code': code,
             })
 
-        return redirect('match_protocol:squad_step', match_id=match.id,side="A")
+        # App "match_protocol" was removed — redirect to tournament page as fallback
+        messages.info(request, 'Протокол матчей отключён. Переадресуем на страницу турнира.')
+        return redirect('tournament:tournament_detail', tournament_id=match.tournament_id)
 
     return render(request, 'tournament/code_entry.html')
 
