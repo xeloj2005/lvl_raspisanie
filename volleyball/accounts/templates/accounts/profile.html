@@ -24,6 +24,18 @@
             <div class="profile-actions">
                 {% if is_own_profile %}
                     <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">Редактировать профиль</a>
+                    <a href="{% url 'tournament:team_create' %}" class="btn" style="margin-left:10px;">Создать команду</a>
+                {% endif %}
+
+                {% if is_admin and not is_own_profile %}
+                    <form method="post" style="display:inline">
+                        {% csrf_token %}
+                        {% if user.is_active %}
+                            <button type="submit" class="btn" style="background:#f8d7da;color:#721c24">Заблокировать</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary">Разблокировать</button>
+                        {% endif %}
+                    </form>
                 {% endif %}
             </div>
         </div>
@@ -50,9 +62,6 @@
             <div class="info-list">
                 <div><span>Email</span><strong>{{ user.email }}</strong></div>
                 <div><span>Телефон</span><strong>{{ user.phone|default:'—' }}</strong></div>
-                <div><span>VK</span><strong>{{ user.vk|default:'—' }}</strong></div>
-                <div><span>Telegram</span><strong>{{ user.telegram|default:'—' }}</strong></div>
-                <div><span>Max</span><strong>{{ user.max|default:'—' }}</strong></div>
                 <div><span>Дата рождения</span><strong>{{ user.birth_date|default:'—' }}</strong></div>
                 <div><span>Разряд</span><strong>{{ user.rank|default:'—' }}</strong></div>
                 <div><span>Рост</span><strong>{{ user.height|default:'—' }}</strong></div>

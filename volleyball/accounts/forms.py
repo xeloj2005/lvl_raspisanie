@@ -6,12 +6,23 @@ User = get_user_model()
 
 
 class RegistrationForm(forms.ModelForm):
-    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'placeholder': 'Введите пароль'}))
-    password2 = forms.CharField(label='Повторите пароль', widget=forms.PasswordInput(attrs={'placeholder': 'Повторите пароль'}))
+    password1 = forms.CharField(
+        label='Пароль',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Введите пароль'})
+    )
+    password2 = forms.CharField(
+        label='Повторите пароль',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Повторите пароль'})
+    )
 
     class Meta:
         model = User
         fields = ['email', 'full_name', 'phone']
+        widgets = {
+            'email': forms.EmailInput(attrs={'placeholder': 'you@example.com'}),
+            'full_name': forms.TextInput(attrs={'placeholder': 'Иванов Иван'}),
+            'phone': forms.TextInput(attrs={'placeholder': '+7...'}),
+        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -37,6 +48,7 @@ class RegistrationForm(forms.ModelForm):
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
+        # Keep profile fields but make social fields optional; phone and others are optional in edit
         fields = ['full_name', 'phone', 'vk', 'telegram', 'max', 'birth_date', 'rank', 'height', 'photo']
         widgets = {
             'birth_date': forms.DateInput(attrs={'type': 'date'}),
@@ -44,12 +56,6 @@ class ProfileForm(forms.ModelForm):
         }
 
     def clean(self):
+        # For profile edit we do not require social/contact fields — keep them optional
         cleaned_data = super().clean()
-        phone = cleaned_data.get('phone')
-        vk = cleaned_data.get('vk')
-        telegram = cleaned_data.get('telegram')
-        max_value = cleaned_data.get('max')
-
-        if not (phone or vk or telegram or max_value):
-            raise ValidationError('Укажите телефон или хотя бы одну социальную сеть (VK, Telegram, Max)')
         return cleaned_data

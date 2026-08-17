@@ -3,6 +3,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 import random
+from django.utils import timezone
 
 def generate_unique_protocol_code():
     while True:
@@ -37,48 +38,13 @@ class Venue(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Team(models.Model):
-    """Команда"""
-    GENDER_CHOICES = [
-        ('M', 'Мужская'),
-        ('F', 'Женская'),
-    ]
-
-    name = models.CharField('Название', max_length=200)
-    gender = models.CharField('Пол', max_length=1, choices=GENDER_CHOICES)
-    coach = models.CharField('Тренер', max_length=200, blank=True)
-
-    class Meta:
-        verbose_name = 'Команда'
-        verbose_name_plural = 'Команды'
-        ordering = ['name', 'gender']
-
-    def __str__(self):
-        return f"{self.name} ({self.get_gender_display()})"
-
-
-class Player(models.Model):
-    """Игрок команды"""
-    full_name = models.CharField('ФИО', max_length=255)
-    birth_date = models.DateField('Дата рождения', null=True, blank=True)
-    rank = models.CharField('Разряд', max_length=100, blank=True)
-
-    class Meta:
-        verbose_name = 'Игрок'
-        verbose_name_plural = 'Игроки'
-        ordering = ['full_name']
-
-    def __str__(self):
-        return self.full_name
-
-
+    
 class Tournament(models.Model):
     """Турнир"""
     GENDER_CHOICES = [
         ('M', 'Мужской'),
         ('F', 'Женский'),
+        ('X', 'Смешанный'),
     ]
 
     TOURNAMENT_TYPE_CHOICES = [
@@ -113,13 +79,14 @@ class Tournament(models.Model):
         blank=True
     )
     teams = models.ManyToManyField(
-        Team,
+        'teams.Team',
         related_name='tournaments',
         verbose_name='Команды',
         blank=True
     )
     order = models.IntegerField('Порядок отображения', default=0)
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    applications_open = models.BooleanField('Приём заявок открыт', default=True)
 
     class Meta:
         verbose_name = 'Турнир'
@@ -165,13 +132,13 @@ class Match(models.Model):
         verbose_name='Турнир'
     )
     team_a = models.ForeignKey(
-        Team,
+        'teams.Team',
         on_delete=models.CASCADE,
         related_name='matches_as_team_a',
         verbose_name='Команда А'
     )
     team_b = models.ForeignKey(
-        Team,
+        'teams.Team',
         on_delete=models.CASCADE,
         related_name='matches_as_team_b',
         verbose_name='Команда Б'
@@ -359,7 +326,7 @@ class StandingsCache(models.Model):
         verbose_name='Турнир'
     )
     team = models.ForeignKey(
-        Team,
+        'teams.Team',
         on_delete=models.CASCADE,
         verbose_name='Команда'
     )
@@ -389,7 +356,7 @@ class TournamentTeamRoster(models.Model):
         verbose_name='Турнир'
     )
     team = models.ForeignKey(
-        Team,
+        'teams.Team',
         on_delete=models.CASCADE,
         related_name='rosters',
         verbose_name='Команда'
@@ -418,8 +385,9 @@ class TournamentRosterPlayer(models.Model):
         related_name='roster_players',
         verbose_name='Состав'
     )
+    # Now reference the project's user model as the player
     player = models.ForeignKey(
-        Player,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='rosters',
         verbose_name='Игрок'
@@ -432,7 +400,131 @@ class TournamentRosterPlayer(models.Model):
         ordering = ['player__full_name']
 
     def __str__(self):
-        return self.player.full_name
+        # user may not have full_name, fall back to email
+        return getattr(self.player, 'full_name', None) or getattr(self.player, 'email', str(self.player))
+
+
+class TournamentApplication(models.Model):
+    """Заявка команды на участие в турнире с выбранным составом.
+
+    Подаёт OWNER/ADMIN команды. Staff одобряет/отклоняет.
+    При одобрении: team -> tournament.teams, создаётся TournamentTeamRoster
+    и TournamentRosterPlayer по каждому выбранному игроку (снимок состава на
+    момент подачи — дальнейшие изменения TeamMembership на утверждённый ростер
+    не влияют).
+    """
+
+    STATUS_PENDING = 'PENDING'
+    STATUS_APPROVED = 'APPROVED'
+    STATUS_REJECTED = 'REJECTED'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'На рассмотрении'),
+        (STATUS_APPROVED, 'Одобрена'),
+        (STATUS_REJECTED, 'Отклонена'),
+    ]
+
+    tournament = models.ForeignKey(
+        Tournament, on_delete=models.CASCADE, related_name='applications', verbose_name='Турнир'
+    )
+    team = models.ForeignKey(
+        'teams.Team', on_delete=models.CASCADE, related_name='tournament_applications', verbose_name='Команда'
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        related_name='tournament_applications', verbose_name='Кем подана'
+    )
+    status = models.CharField('Статус', max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField('Дата подачи', auto_now_add=True)
+    processed_at = models.DateTimeField('Дата обработки', null=True, blank=True)
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='processed_tournament_applications', verbose_name='Кем обработана'
+    )
+    comment = models.TextField('Комментарий', blank=True)
+
+    class Meta:
+        verbose_name = 'Заявка на турнир'
+        verbose_name_plural = 'Заявки на турнир'
+        unique_together = ['tournament', 'team']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.team.name} → {self.tournament.name} [{self.status}]'
+
+    def clean(self):
+        if self.team.gender != self.tournament.gender:
+            raise ValidationError('Пол команды не совпадает с полом турнира')
+        if not self.team.is_active():
+            raise ValidationError('Команда должна быть активна для подачи заявки')
+        if not self.tournament.applications_open:
+            raise ValidationError('Приём заявок в этот турнир закрыт')
+
+    def approve(self, processed_by):
+        if self.status != self.STATUS_PENDING:
+            raise ValidationError('Заявка уже обработана')
+        if self.players.count() == 0:
+            raise ValidationError('В заявке нет ни одного игрока')
+
+        self.tournament.teams.add(self.team)
+
+        roster, _ = TournamentTeamRoster.objects.get_or_create(
+            tournament=self.tournament, team=self.team
+        )
+        for app_player in self.players.select_related('user'):
+            TournamentRosterPlayer.objects.get_or_create(
+                roster=roster, player=app_player.user,
+                defaults={'position': app_player.position},
+            )
+
+        self.status = self.STATUS_APPROVED
+        self.processed_at = timezone.now()
+        self.processed_by = processed_by
+        self.save(update_fields=['status', 'processed_at', 'processed_by'])
+        return roster
+
+    def reject(self, processed_by, comment=''):
+        if self.status != self.STATUS_PENDING:
+            raise ValidationError('Заявка уже обработана')
+        self.status = self.STATUS_REJECTED
+        self.processed_at = timezone.now()
+        self.processed_by = processed_by
+        self.comment = comment
+        self.save(update_fields=['status', 'processed_at', 'processed_by', 'comment'])
+
+
+class TournamentApplicationPlayer(models.Model):
+    """Игрок, выбранный капитаном/админом команды в состав заявки."""
+
+    application = models.ForeignKey(
+        TournamentApplication, on_delete=models.CASCADE, related_name='players', verbose_name='Заявка'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='tournament_application_entries', verbose_name='Игрок'
+    )
+    position = models.CharField('Игровая позиция', max_length=50, blank=True)
+
+    class Meta:
+        verbose_name = 'Игрок в заявке'
+        verbose_name_plural = 'Игроки в заявке'
+        unique_together = ['application', 'user']
+
+    def __str__(self):
+        return f'{self.user} — {self.application}'
+
+    def clean(self):
+        from teams.models import TeamMembership
+        if not TeamMembership.objects.filter(
+            team=self.application.team, user=self.user, is_active=True
+        ).exists():
+            raise ValidationError('Игрок не состоит в этой команде')
+
+        conflict = TournamentRosterPlayer.objects.filter(
+            roster__tournament=self.application.tournament, player=self.user
+        ).exclude(roster__team=self.application.team).exists()
+        if conflict:
+            raise ValidationError('Игрок уже заявлен за другую команду в этом турнире')
+
 
 class Referee(models.Model):
     """Судья"""

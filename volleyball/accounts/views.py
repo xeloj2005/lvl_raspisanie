@@ -4,21 +4,16 @@ from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 
-from tournament.models import Player, TournamentRosterPlayer
+from tournament.models import TournamentRosterPlayer
 
 from .forms import ProfileForm, RegistrationForm
 from .models import User
 
 
 def _build_profile_context(user):
-    player = Player.objects.filter(full_name__iexact=user.full_name).first()
-    roster_players = []
-    if player:
-        roster_players = (
-            TournamentRosterPlayer.objects.filter(player=player)
-            .select_related('roster__team', 'roster__tournament')
-            .order_by('-roster__tournament__created_at')
-        )
+    roster_players = TournamentRosterPlayer.objects.filter(
+        models.Q(player__id=user.id) | models.Q(player__full_name__iexact=user.full_name)
+    ).select_related('roster__team', 'roster__tournament').order_by('-roster__tournament__created_at')
 
     participation = []
     seen = set()
@@ -34,7 +29,7 @@ def _build_profile_context(user):
 
     return {
         'user': user,
-        'player': player,
+        'player': None,
         'tournaments_count': len({item['tournament'] for item in participation}),
         'teams_count': len({item['team'] for item in participation}),
         'participation': participation,
@@ -47,9 +42,7 @@ def register_view(request):
         form = RegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()
-            authenticated = authenticate(request, email=user.email, password=form.cleaned_data['password1'])
-            if authenticated is not None:
-                login(request, authenticated)
+            login(request, user)
             messages.success(request, 'Регистрация успешно завершена')
             return redirect('accounts:profile')
     else:
