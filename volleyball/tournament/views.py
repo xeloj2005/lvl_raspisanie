@@ -150,7 +150,7 @@ def team_create(request):
             # Create membership for creator as CAPTAIN
             TeamMembership.objects.create(team=team, user=request.user, roles=[TeamRole.CAPTAIN, TeamRole.PLAYER], is_active=True)
             messages.success(request, f'Команда "{team.name}" успешно создана')
-            return redirect('tournament:team_detail', team_id=team.id)
+            return redirect('teams:team_detail', team_id=team.id)
     return render(request, 'tournament/team_form.html', {'team': None})
 
 
@@ -167,7 +167,7 @@ def team_detail(request, team_id):
         if not user_in_team:
             TeamMembership.objects.create(team=team, user=request.user, roles=[TeamRole.PLAYER], is_active=True)
             messages.success(request, 'Вы присоединились к команде')
-            return redirect('tournament:team_detail', team_id=team.id)
+            return redirect('teams:team_detail', team_id=team.id)
 
     return render(request, 'tournament/team_detail.html', {
         'team': team,
@@ -196,7 +196,7 @@ def team_edit(request, team_id):
             team.gender = gender
             team.save()
             messages.success(request, 'Команда обновлена')
-            return redirect('tournament:team_detail', team_id=team.id)
+            return redirect('teams:team_detail', team_id=team.id)
 
     return render(request, 'tournament/team_form.html', {'team': team})
 
@@ -215,7 +215,7 @@ def team_members_manage(request, team_id):
             roles = request.POST.getlist('roles') or [TeamRole.PLAYER]
             if not email:
                 messages.error(request, 'Укажите email')
-                return redirect('tournament:team_members_manage', team_id=team.id)
+                return redirect('teams:team_members_manage', team_id=team.id)
             User = get_user_model()
             user = None
             # If looks like an email, try exact email first, then fallback to contains
@@ -229,10 +229,10 @@ def team_members_manage(request, team_id):
                     elif matches.count() > 1:
                         msgs = ', '.join([f"{u.full_name} <{u.email}>" for u in matches])
                         messages.error(request, f'Найдено несколько пользователей: {msgs}. Уточните email.')
-                        return redirect('tournament:team_members_manage', team_id=team.id)
+                        return redirect('teams:team_members_manage', team_id=team.id)
                     else:
                         messages.error(request, 'Пользователь с таким email не найден')
-                        return redirect('tournament:team_members_manage', team_id=team.id)
+                        return redirect('teams:team_members_manage', team_id=team.id)
             else:
                 # Treat input as name fragment: search by full_name or email
                 matches = User.objects.filter(Q(full_name__icontains=email) | Q(email__icontains=email)).order_by('full_name')[:6]
@@ -241,10 +241,10 @@ def team_members_manage(request, team_id):
                 elif matches.count() > 1:
                     msgs = ', '.join([f"{u.full_name} <{u.email}>" for u in matches])
                     messages.error(request, f'Найдено несколько пользователей: {msgs}. Уточните ввод (полное имя или email).')
-                    return redirect('tournament:team_members_manage', team_id=team.id)
+                    return redirect('teams:team_members_manage', team_id=team.id)
                 else:
                     messages.error(request, 'Пользователь не найден. Укажите точный email или полное имя.')
-                    return redirect('tournament:team_members_manage', team_id=team.id)
+                    return redirect('teams:team_members_manage', team_id=team.id)
 
             membership, created = TeamMembership.objects.get_or_create(team=team, user=user, defaults={'roles': roles, 'is_active': True})
             if not created:
@@ -256,7 +256,7 @@ def team_members_manage(request, team_id):
                 messages.info(request, 'Роли обновлены для существующего участника')
             else:
                 messages.success(request, 'Пользователь добавлен в команду')
-            return redirect('tournament:team_members_manage', team_id=team.id)
+            return redirect('teams:team_members_manage', team_id=team.id)
 
         elif action == 'remove':
             membership_id = request.POST.get('membership_id')
@@ -266,7 +266,7 @@ def team_members_manage(request, team_id):
                 messages.success(request, 'Участник удалён')
             except Exception:
                 messages.error(request, 'Не удалось удалить участника')
-            return redirect('tournament:team_members_manage', team_id=team.id)
+            return redirect('teams:team_members_manage', team_id=team.id)
 
     memberships = team.memberships.select_related('user').all()
     # show a short list of users for quick add
