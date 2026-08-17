@@ -3,7 +3,7 @@
 <h1>{{ team.name }} ({{ team.get_gender_display }})</h1>
 <p>Создатель: {% if team.creator %}{{ team.creator.full_name }}{% else %}—{% endif %}</p>
 {% if can_edit %}
-  <p><a href="{% url 'tournament:team_edit' team.id %}">Редактировать</a></p>
+  <p><a href="{% url 'teams:team_edit' team.id %}">Редактировать</a></p>
 {% endif %}
 
 <h2>Состав</h2>

@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
 <h1>Команды</h1>
-<p><a href="{% url 'tournament:team_create' %}">+ Создать команду</a></p>
+<p><a href="{% url 'teams:team_create' %}">+ Создать команду</a></p>
 <ul>
   {% for team in teams %}
   <li>
-    <a href="{% url 'tournament:team_detail' team.id %}">{{ team.name }}</a> — {{ team.get_gender_display }}{% if team.creator %} (создал {{ team.creator.full_name }}){% endif %}
+    <a href="{% url 'teams:team_detail' team.id %}">{{ team.name }}</a> — {{ team.get_gender_display }}{% if team.creator %} (создал {{ team.creator.full_name }}){% endif %}
   </li>
   {% empty %}
   <li>Команд пока нет</li>
