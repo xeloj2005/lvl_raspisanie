@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Count, Sum, Case, When, IntegerField
-from .models import TournamentGroup, Tournament, Match, Team, TeamMembership
+from .models import TournamentGroup, Tournament, Match
 from collections import defaultdict
 from django.contrib import messages
 from functools import cmp_to_key
@@ -9,6 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.http import HttpResponseForbidden
 from django.shortcuts import resolve_url
+
+from teams.models import Team, TeamMembership, TeamRole
 
 def format_ratio(value):
     if value is None:
@@ -123,12 +125,12 @@ def user_is_team_manager(user, team):
         return True
     # check active captain membership
     try:
-        m = team.memberships.filter(user=user, is_active=True, roles__contains=[TeamMembership.ROLE_CAPTAIN]).first()
+        m = team.memberships.filter(user=user, is_active=True, roles__contains=[TeamRole.CAPTAIN]).first()
     except Exception:
         # JSONField contains lookup may fail on some backends; fallback to python-level check
         m = None
         for mem in team.memberships.filter(user=user, is_active=True):
-            if TeamMembership.ROLE_CAPTAIN in (mem.roles or []):
+            if TeamRole.CAPTAIN in (mem.roles or []):
                 m = mem
                 break
     return bool(m)
@@ -146,7 +148,7 @@ def team_create(request):
         else:
             team = Team.objects.create(name=name, gender=gender, creator=request.user)
             # Create membership for creator as CAPTAIN
-            TeamMembership.objects.create(team=team, user=request.user, roles=[TeamMembership.ROLE_CAPTAIN, TeamMembership.ROLE_MEMBER], is_active=True)
+            TeamMembership.objects.create(team=team, user=request.user, roles=[TeamRole.CAPTAIN, TeamRole.PLAYER], is_active=True)
             messages.success(request, f'Команда "{team.name}" успешно создана')
             return redirect('tournament:team_detail', team_id=team.id)
     return render(request, 'tournament/team_form.html', {'team': None})
@@ -163,7 +165,7 @@ def team_detail(request, team_id):
     if request.method == 'POST' and 'join' in request.POST:
         # allow user to join if allowed (simple auto-join)
         if not user_in_team:
-            TeamMembership.objects.create(team=team, user=request.user, roles=[TeamMembership.ROLE_MEMBER], is_active=True)
+            TeamMembership.objects.create(team=team, user=request.user, roles=[TeamRole.PLAYER], is_active=True)
             messages.success(request, 'Вы присоединились к команде')
             return redirect('tournament:team_detail', team_id=team.id)
 
@@ -210,7 +212,7 @@ def team_members_manage(request, team_id):
         action = request.POST.get('action')
         if action == 'add':
             email = request.POST.get('email','').strip().lower()
-            roles = request.POST.getlist('roles') or [TeamMembership.ROLE_MEMBER]
+            roles = request.POST.getlist('roles') or [TeamRole.PLAYER]
             if not email:
                 messages.error(request, 'Укажите email')
                 return redirect('tournament:team_members_manage', team_id=team.id)

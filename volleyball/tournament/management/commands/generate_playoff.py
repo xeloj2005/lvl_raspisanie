@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from tournament.models import Tournament
-from tournament.views import check_and_generate_playoff
+from volleyball.tournament.models import Tournament
+from volleyball.tournament.views import check_and_generate_playoff
 
 
 class Command(BaseCommand):

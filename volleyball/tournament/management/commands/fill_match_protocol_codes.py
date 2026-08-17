@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from tournament.models import Match, generate_unique_protocol_code
+from volleyball.tournament.models import Match, generate_unique_protocol_code
 
 
 class Command(BaseCommand):

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ team.name }} ({{ team.get_gender_display }})</h1>
+<p>Создатель: {% if team.creator %}{{ team.creator.full_name }}{% else %}—{% endif %}</p>
+{% if can_edit %}
+  <p><a href="{% url 'tournament:team_edit' team.id %}">Редактировать</a></p>
+{% endif %}
+
+<h2>Состав</h2>
+<ul>
+  {% for m in memberships %}
+    <li>{{ m.user.full_name }} — {{ m.roles|join:", " }} {% if not m.is_active %}(неактивен){% endif %}</li>
+  {% empty %}
+    <li>Нет участников</li>
+  {% endfor %}
+</ul>
+
+{% if is_creator and not user_in_team %}
+<form method="post" action="">
+  {% csrf_token %}
+  <button type="submit" name="join" value="1">Присоединиться к команде</button>
+</form>
+{% endif %}
+
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TournamentGroup, Venue, Team, Tournament, Match, StandingsCache
+from .models import TournamentGroup, Venue, Tournament, Match, StandingsCache
 
 
 @admin.register(TournamentGroup)
@@ -15,16 +15,7 @@ class VenueAdmin(admin.ModelAdmin):
     search_fields = ['name', 'address']
 
 
-@admin.register(Team)
-class TeamAdmin(admin.ModelAdmin):
-    list_display = ['name', 'gender', 'get_tournaments_count']
-    list_filter = ['gender']
-    search_fields = ['name']
 
-    def get_tournaments_count(self, obj):
-        return obj.tournaments.count()
-
-    get_tournaments_count.short_description = 'Турниров'
 
 
 class MatchInline(admin.TabularInline):

@@ -1,0 +1,53 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Управление командами{% endblock %}
+{% block header %}Команды{% endblock %}
+
+{% block admin_content %}
+<div class="admin-toolbar">
+    <form method="get" class="search-form">
+        <input type="text" name="search" value="{{ search }}" placeholder="Поиск по названию команды">
+        <select name="gender">
+            <option value="">Все полы</option>
+            <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Мужская</option>
+            <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Женская</option>
+            <option value="X" {% if gender_filter == 'X' %}selected{% endif %}>Смешанная</option>
+        </select>
+        <button type="submit">Поиск</button>
+    </form>
+    <a href="{% url 'tournament:admin_team_create' %}" class="btn-primary">+ Добавить команду</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Пол</th>
+            <th>Создатель</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for team in teams %}
+        <tr>
+            <td>{{ team.name }}</td>
+            <td>{{ team.get_gender_display }}</td>
+            <td>{% if team.creator %}{{ team.creator.full_name }}{% else %}—{% endif %}</td>
+            <td>
+                <a href="{% url 'tournament:admin_team_members' team.id %}">Состав</a>
+                <a href="{% url 'tournament:admin_team_edit' team.id %}">Ред.</a>
+                <a href="{% url 'tournament:admin_team_delete' team.id %}">Удал.</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">Команд не найдено</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

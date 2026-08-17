@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{% if team %}Редактировать команду{% else %}Создать команду{% endif %}</h1>
+<form method="post">
+  {% csrf_token %}
+  <label>Название:<br><input type="text" name="name" value="{{ team.name|default:'' }}"></label><br>
+  <label>Пол:<br>
+    <select name="gender">
+      <option value="">-- выберите --</option>
+      <option value="M" {% if team.gender=='M' %}selected{% endif %}>Мужская</option>
+      <option value="F" {% if team.gender=='F' %}selected{% endif %}>Женская</option>
+      <option value="X" {% if team.gender=='X' %}selected{% endif %}>Смешанная</option>
+    </select>
+  </label><br>
+  <button type="submit">Сохранить</button>
+</form>
+{% endblock %}

@@ -64,14 +64,14 @@ class Command(BaseCommand):
 
         self.stdout.write('Создание команд...')
         teams = {
-            'meteor': Team.objects.create(name='Метеор', gender='M', coach='Игорь Петров'),
-            'burevestnik': Team.objects.create(name='Буревестник', gender='M', coach='Олег Смирнов'),
-            'fakel': Team.objects.create(name='Факел', gender='M', coach='Андрей Волков'),
-            'dynamo': Team.objects.create(name='Динамо', gender='M', coach='Сергей Кузнецов'),
-            'iskra': Team.objects.create(name='Искра', gender='F', coach='Марина Алексеева'),
-            'volna': Team.objects.create(name='Волна', gender='F', coach='Елена Громова'),
-            'aurora': Team.objects.create(name='Аврора', gender='F', coach='Наталья Белова'),
-            'zvezda': Team.objects.create(name='Звезда', gender='F', coach='Оксана Миронова'),
+            'meteor': Team.objects.create(name='Метеор', gender='M'),
+            'burevestnik': Team.objects.create(name='Буревестник', gender='M'),
+            'fakel': Team.objects.create(name='Факел', gender='M'),
+            'dynamo': Team.objects.create(name='Динамо', gender='M'),
+            'iskra': Team.objects.create(name='Искра', gender='F'),
+            'volna': Team.objects.create(name='Волна', gender='F'),
+            'aurora': Team.objects.create(name='Аврора', gender='F'),
+            'zvezda': Team.objects.create(name='Звезда', gender='F'),
         }
 
         self.stdout.write('Создание игроков...')

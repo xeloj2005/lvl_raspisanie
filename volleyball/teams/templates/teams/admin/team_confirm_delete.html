@@ -1,0 +1,39 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block title %}Удаление команды{% endblock %}
+{% block header %}Удаление команды{% endblock %}
+
+{% block admin_content %}
+<div style="max-width: 600px;">
+    <div class="delete-warning">
+        <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+        <h2 style="color: #dc3545; margin-bottom: 15px;">Подтверждение удаления</h2>
+        <p style="font-size: 16px; margin-bottom: 30px;">
+            Вы действительно хотите удалить команду <strong>"{{ team.name }}"</strong>?
+        </p>
+        
+        {% if tournaments_count > 0 or matches_count > 0 %}
+        <div class="warning-info">
+            <strong>Внимание!</strong> Эта команда связана с:
+            <ul style="margin: 15px 0; padding-left: 20px;">
+                {% if tournaments_count > 0 %}
+                <li>Турниров: {{ tournaments_count }}</li>
+                {% endif %}
+                {% if matches_count > 0 %}
+                <li>Матчей: {{ matches_count }}</li>
+                {% endif %}
+            </ul>
+            <p>При удалении команды все связанные данные будут также удалены!</p>
+        </div>
+        {% endif %}
+        
+        <form method="post" style="margin-top: 30px;">
+            {% csrf_token %}
+            <div style="display: flex; gap: 15px;">
+                <button type="submit" class="btn-danger">🗑️ Да, удалить</button>
+                <a href="{% url 'tournament:admin_teams_list' %}" class="btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

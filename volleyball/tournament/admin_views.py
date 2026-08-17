@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import Team, Venue, TournamentGroup, Tournament, Match, TournamentTeamRoster, TournamentRosterPlayer, Player, Referee, generate_unique_protocol_code
+from .models import  Venue, TournamentGroup, Tournament, Match, TournamentTeamRoster, TournamentRosterPlayer,  Referee, generate_unique_protocol_code
 from .views import check_and_generate_playoff
 from django.db import IntegrityError
 from django.urls import reverse

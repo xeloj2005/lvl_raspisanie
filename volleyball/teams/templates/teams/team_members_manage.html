@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Управление составом команды: {{ team.name }}</h1>
+<p><a href="{% url 'tournament:team_detail' team.id %}">К странице команды</a></p>
+
+<h2>Текущие участники</h2>
+<table>
+  <thead><tr><th>Пользователь</th><th>Роли</th><th>Статус</th><th>Действия</th></tr></thead>
+  <tbody>
+    {% for m in memberships %}
+    <tr>
+      <td>{{ m.user.full_name }}<br><small>{{ m.user.email }}</small></td>
+      <td>{{ m.roles|join:", " }}</td>
+      <td>{% if m.is_active %}Активен{% else %}Неактивен{% endif %}</td>
+      <td>
+        <form method="post" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="remove">
+          <input type="hidden" name="membership_id" value="{{ m.id }}">
+          <button type="submit" onclick="return confirm('Удалить участника?')">Удалить</button>
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Нет участников</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Добавить участника</h2>
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add">
+  <label>Выбрать пользователя:
+    <select name="email">
+      <option value="">-- выбрать --</option>
+      {% for u in users %}
+        <option value="{{ u.email }}">{{ u.full_name }} ({{ u.email }})</option>
+      {% endfor %}
+    </select>
+  </label>
+  <p>или ввести email:<br><input type="email" name="email" placeholder="user@example.com"></p>
+  <fieldset>
+    <legend>Роли</legend>
+    <label><input type="checkbox" name="roles" value="MEMBER" checked> Участник</label>
+    <label><input type="checkbox" name="roles" value="CAPTAIN"> Капитан</label>
+    <label><input type="checkbox" name="roles" value="COACH"> Тренер</label>
+  </fieldset>
+  <button type="submit">Добавить</button>
+</form>
+
+{% endblock %}

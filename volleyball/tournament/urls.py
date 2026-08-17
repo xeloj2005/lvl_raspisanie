@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import admin_views
+from teams.views import team_create, team_detail, team_edit, team_members_manage, teams_list
 
 app_name = 'tournament'
 
@@ -65,6 +66,12 @@ urlpatterns = [
     path('admin-panel/referees/', admin_views.referees_list, name='admin_referees_list'),
     path('admin-panel/referees/create/', admin_views.referee_create, name='admin_referee_create'),
 
+    # Команды — логика вынесена в teams app, но legacy-вьюшки сохраняем в tournament namespace
+    path('teams/', teams_list, name='teams_list'),
+    path('teams/create/', team_create, name='team_create'),
+    path('teams/<int:team_id>/', team_detail, name='team_detail'),
+    path('teams/<int:team_id>/edit/', team_edit, name='team_edit'),
+    path('teams/<int:team_id>/members/', team_members_manage, name='team_members_manage'),
 
     path('protocol/', views.protocol_code_entry, name='code_entry'),
 ]

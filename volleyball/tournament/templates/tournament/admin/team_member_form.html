@@ -1,0 +1,29 @@
+{% extends 'tournament/admin/admin_base.html' %}
+
+{% block content %}
+<h1>Редактирование участника команды: {{ membership.user.full_name }}</h1>
+<p><a href="{{ back_href }}">{{ back_title }}</a></p>
+
+<form method="post">
+  {% csrf_token %}
+  <p><strong>Email:</strong> {{ membership.user.email }}</p>
+  <p><strong>Присоединился:</strong> {{ membership.joined_at }}</p>
+
+  <fieldset>
+    <legend>Роли</legend>
+    {% for r in ['MEMBER','CAPTAIN','COACH'] %}
+      <label>
+        <input type="checkbox" name="roles" value="{{ r }}" {% if r in membership.roles %}checked{% endif %}> {{ r }}
+      </label>
+    {% endfor %}
+  </fieldset>
+
+  <label><input type="checkbox" name="is_active" {% if membership.is_active %}checked{% endif %}> Активен</label>
+
+  <div class="form-actions">
+    <button type="submit">Сохранить</button>
+    <a href="{% url 'tournament:admin_team_members' team.id %}">Отмена</a>
+  </div>
+</form>
+
+{% endblock %}
